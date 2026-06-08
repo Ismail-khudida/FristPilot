@@ -49,6 +49,12 @@ export function NavBar({ email }: { email: string | null }) {
           </form>
         </div>
       </div>
+      <div className="border-t border-gray-100 bg-gray-50">
+        <div className="mx-auto flex max-w-4xl gap-4 px-4 py-1.5 text-xs text-ink-soft">
+          <Link href="/privacy" className="hover:underline">Datenschutz</Link>
+          <Link href="/imprint" className="hover:underline">Impressum</Link>
+        </div>
+      </div>
     </header>
   );
 }

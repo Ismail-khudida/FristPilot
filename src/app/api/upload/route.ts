@@ -8,6 +8,7 @@ import {
   finalizeQuota,
   quotaMessage,
 } from "@/lib/rate-limit";
+import { captureError } from "@/lib/sentry";
 
 export const runtime = "nodejs";
 // KI-Analyse kann einige Sekunden dauern.
@@ -127,6 +128,7 @@ export async function POST(request: Request) {
 
   if (uploadError) {
     console.error("Upload fehlgeschlagen:", uploadError);
+    await captureError(uploadError, { category: "storage", extra: { documentId } });
     // Upload fehlgeschlagen -> kein Verbrauch buchen (Claude lief nie).
     await markFailed("Die Datei konnte nicht gespeichert werden.");
     return NextResponse.json(
@@ -170,6 +172,7 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error("Speichern der Analyse fehlgeschlagen:", updateError);
+      await captureError(updateError, { category: "upload", extra: { documentId } });
       await cleanupStorage();
       await markFailed("Die Analyse konnte nicht gespeichert werden.");
       await finalizeQuota(supabase, consumed.usageId, documentId, "failed");
@@ -183,6 +186,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ documentId });
   } catch (err) {
     console.error("Analyse fehlgeschlagen:", err);
+    await captureError(err, { category: "analysis", extra: { documentId } });
     await cleanupStorage();
     await markFailed(
       "Die automatische Analyse ist fehlgeschlagen. Bitte versuche es später erneut.",

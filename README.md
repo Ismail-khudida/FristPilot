@@ -45,6 +45,8 @@ npm install
      Analyse werden auf `done` gesetzt.
    - `0003_analysis_usage.sql` – legt die Tabelle `analysis_usage` und die
      Rate-Limit-Funktionen an.
+   - `0004_upload_consents.sql` – legt die Tabelle `upload_consents` für die
+     DSGVO-Einwilligung zur Anthropic-Datenübermittlung an.
 3. Unter **Settings → API** die Projekt-URL und die Keys kopieren.
 4. Optional unter **Authentication → Providers → Email** einstellen, ob eine
    E-Mail-Bestätigung erforderlich ist (für lokale Tests kann sie deaktiviert
@@ -67,14 +69,51 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Projekt-URL aus Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon/Public Key |
 | `SUPABASE_STORAGE_BUCKET` | Bucket-Name (Standard: `documents`) |
-| `APP_ORIGIN` | Eigene App-Domain für CSRF-Schutz & E-Mail-Links (lokal `http://localhost:3000`) |
+| `APP_ORIGIN` | **Pflicht in Produktion.** Eigene App-Domain für CSRF-Schutz & E-Mail-Links (lokal `http://localhost:3000`). Muss mit der in Supabase konfigurierten Redirect-URL übereinstimmen. |
 | `DAILY_USER_ANALYSIS_LIMIT` | optional, Analysen pro Nutzer/Tag (Standard `10`) |
 | `DAILY_GLOBAL_ANALYSIS_LIMIT` | optional, globale Analysen pro Tag (Standard `200`) |
 | `ANTHROPIC_API_KEY` | API-Key von Anthropic |
 | `ANTHROPIC_MODEL` | optional, Standard `claude-opus-4-8` |
+| `SENTRY_DSN` | optional, Sentry-DSN für Fehlertracking. Wenn nicht gesetzt, läuft die App ohne Monitoring. |
 
 > Ein Service-Role-Key wird nicht mehr benötigt: Upload und Löschen laufen über
 > den session-gebundenen Client, abgesichert durch RLS- und Storage-Policies.
+
+### Redirect-URLs in Supabase konfigurieren
+
+Unter **Authentication → URL Configuration** in Supabase muss die App-Origin
+als erlaubte Redirect-URL eingetragen sein:
+
+```
+<APP_ORIGIN>/auth/callback
+```
+
+Lokal: `http://localhost:3000/auth/callback`  
+Produktion: `https://deine-domain.de/auth/callback`
+
+Diese URL wird für E-Mail-Bestätigung und Passwort-Reset verwendet.
+
+### Datenschutz & Impressum (Pflicht vor Betrieb)
+
+Die Seiten `/privacy` und `/imprint` enthalten Platzhalter, die vor dem
+Betrieb durch echte Angaben ersetzt werden müssen:
+
+- **Impressum** (`src/app/imprint/page.tsx`): Name, Anschrift, Kontakt
+- **Datenschutzerklärung** (`src/app/privacy/page.tsx`): Verantwortlicher,
+  Kontakt, AVV-Dokumentation für Anthropic und Supabase
+
+Alle Platzhalter sind visuell mit gelbem Hintergrund markiert.
+
+### Anthropic-Hinweis für Nutzer
+
+Hochgeladene Dokumente werden zur Analyse an **Anthropic, PBC** (San Francisco,
+USA) übermittelt. Nutzer müssen vor dem ersten Upload explizit einwilligen
+(gespeichert in `upload_consents`). Diese Einwilligung ist Rechtsgrundlage
+für die Drittlandübermittlung nach Art. 6 Abs. 1 lit. a DSGVO.
+
+Vor dem produktiven Betrieb sollte ein **Auftragsverarbeitungsvertrag (AVV)**
+mit Anthropic abgeschlossen und geprüft werden, ob Standardvertragsklauseln
+nach Art. 46 DSGVO erforderlich sind.
 
 ### 4. Entwicklungsserver starten
 

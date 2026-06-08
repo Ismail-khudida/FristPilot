@@ -243,6 +243,31 @@ begin
 end;
 $$;
 
+-- ------------------------------------------------------------------
+-- upload_consents – explizite Einwilligung zur KI-Datenübermittlung
+-- ------------------------------------------------------------------
+create table if not exists public.upload_consents (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  consent_version text not null default '1',
+  created_at      timestamptz not null default now()
+);
+
+create unique index if not exists upload_consents_user_version_uidx
+  on public.upload_consents (user_id, consent_version);
+
+alter table public.upload_consents enable row level security;
+
+drop policy if exists "Users can read own consents" on public.upload_consents;
+create policy "Users can read own consents"
+  on public.upload_consents for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own consents" on public.upload_consents;
+create policy "Users can insert own consents"
+  on public.upload_consents for insert
+  with check (auth.uid() = user_id);
+
 revoke all on function public.check_analysis_quota(int, int) from public;
 revoke all on function public.consume_analysis(int, int) from public;
 revoke all on function public.finalize_analysis(uuid, uuid, text) from public;

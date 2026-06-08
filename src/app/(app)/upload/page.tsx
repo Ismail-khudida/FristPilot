@@ -1,8 +1,12 @@
 import { UploadForm } from "@/components/UploadForm";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { PrivacyNotice } from "@/components/PrivacyNotice";
+import { ConsentGate } from "@/components/ConsentGate";
+import { getConsentState } from "./actions";
 
-export default function UploadPage() {
+export default async function UploadPage() {
+  const { hasConsent } = await getConsentState();
+
   return (
     <div className="space-y-6">
       <div>
@@ -14,11 +18,13 @@ export default function UploadPage() {
         </p>
       </div>
 
-      <div className="card">
-        <UploadForm />
-      </div>
+      <ConsentGate initialConsent={hasConsent}>
+        <div className="card">
+          <UploadForm />
+        </div>
+        <PrivacyNotice />
+      </ConsentGate>
 
-      <PrivacyNotice />
       <LegalDisclaimer />
     </div>
   );
