@@ -24,29 +24,23 @@ export default function ImprintPage() {
         </header>
 
         <Section title="Anbieter">
-          <Placeholder label="Vollständiger Name (Privatperson oder Firmenname) eintragen" />
-          <Placeholder label="Straße und Hausnummer eintragen" className="mt-2" />
-          <Placeholder label="PLZ und Ort eintragen" className="mt-2" />
-          <Placeholder label="Land eintragen" className="mt-2" />
+          <p>Ismail Khudida</p>
+          <p className="mt-2">Bückeburger Str. 14</p>
+          <p className="mt-2">32457 Porta Westfalica</p>
+          <p className="mt-2">Deutschland</p>
         </Section>
 
         <Section title="Kontakt">
           <p>
             E-Mail:{" "}
-            <Placeholder inline label="E-Mail-Adresse eintragen" />
-          </p>
-          <p className="mt-2">
-            Telefon:{" "}
-            <Placeholder inline label="Telefonnummer eintragen (oder Zeile entfernen)" />
+            <a href="mailto:ismail.khudida@recmo.de" className="text-navy underline">
+              ismail.khudida@recmo.de
+            </a>
           </p>
         </Section>
 
         <Section title="Verantwortlich für Inhalte (§ 55 Abs. 2 RStV)">
-          <Placeholder label="Name und Anschrift der verantwortlichen Person eintragen (muss nicht identisch mit dem Anbieter sein)" />
-        </Section>
-
-        <Section title="Handelsregister / Sonstige Angaben">
-          <Placeholder label="Handelsregisternummer, Umsatzsteuer-ID o.ä. eintragen – oder diesen Abschnitt entfernen, falls nicht zutreffend" />
+          <p>Ismail Khudida, Anschrift wie oben.</p>
         </Section>
 
         <Section title="Haftungshinweis">
@@ -83,21 +77,4 @@ function Section({
       <div className="space-y-2 text-sm leading-relaxed text-ink">{children}</div>
     </section>
   );
-}
-
-function Placeholder({
-  label,
-  inline = false,
-  className = "",
-}: {
-  label: string;
-  inline?: boolean;
-  className?: string;
-}) {
-  const base =
-    "rounded border border-dashed border-amber-400 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700";
-  if (inline) {
-    return <span className={base}>[{label}]</span>;
-  }
-  return <div className={`${base} ${className}`}>[{label}]</div>;
 }

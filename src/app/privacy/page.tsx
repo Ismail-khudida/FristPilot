@@ -26,10 +26,15 @@ export default function PrivacyPage() {
         </header>
 
         <Section title="1. Verantwortlicher">
-          <Placeholder label="Name und Anschrift des Verantwortlichen eintragen" />
+          <p>Ismail Khudida</p>
+          <p>Bückeburger Str. 14</p>
+          <p>32457 Porta Westfalica</p>
+          <p>Deutschland</p>
           <p className="mt-2 text-sm text-ink-soft">
             Bei Fragen zum Datenschutz wenden Sie sich bitte an:{" "}
-            <Placeholder inline label="E-Mail-Adresse eintragen" />
+            <a href="mailto:ismail.khudida@recmo.de" className="text-navy underline">
+              ismail.khudida@recmo.de
+            </a>
           </p>
         </Section>
 
@@ -121,13 +126,9 @@ export default function PrivacyPage() {
                 <td className="py-2">USA</td>
               </tr>
               <tr>
-                <td className="py-2 pr-4">
-                  <Placeholder inline label="Hosting-Anbieter eintragen" />
-                </td>
-                <td className="py-2 pr-4">App-Hosting</td>
-                <td className="py-2">
-                  <Placeholder inline label="Land eintragen" />
-                </td>
+                <td className="py-2 pr-4">Cloudflare, Inc.</td>
+                <td className="py-2 pr-4">App-Hosting (Workers)</td>
+                <td className="py-2">USA / global (EU-Rechenzentren)</td>
               </tr>
             </tbody>
           </table>
@@ -152,7 +153,9 @@ export default function PrivacyPage() {
           <p className="mt-3 text-sm">
             Zur Ausübung Ihrer Rechte oder zum Widerruf der Einwilligung wenden
             Sie sich an:{" "}
-            <Placeholder inline label="Kontakt-E-Mail eintragen" />
+            <a href="mailto:ismail.khudida@recmo.de" className="text-navy underline">
+              ismail.khudida@recmo.de
+            </a>
           </p>
           <p className="mt-2 text-sm">
             Sie haben außerdem das Recht, sich bei der zuständigen
@@ -161,7 +164,12 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="6. Kontakt">
-          <Placeholder label="Datenschutzbeauftragter oder Kontaktperson eintragen" />
+          <p>
+            Verantwortliche Kontaktperson: Ismail Khudida,{" "}
+            <a href="mailto:ismail.khudida@recmo.de" className="text-navy underline">
+              ismail.khudida@recmo.de
+            </a>
+          </p>
         </Section>
 
         <div className="border-t pt-6 text-sm text-ink-soft">
