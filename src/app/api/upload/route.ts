@@ -10,7 +10,7 @@ import {
 } from "@/lib/rate-limit";
 import { captureError } from "@/lib/sentry";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 // KI-Analyse kann einige Sekunden dauern.
 export const maxDuration = 60;
 

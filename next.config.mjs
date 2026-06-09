@@ -1,12 +1,16 @@
+import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Uploads can be a few MB (PDF/JPG/PNG). Allow a generous body size for
-  // the Server Action / route handler that receives the file.
   experimental: {
     serverActions: {
       bodySizeLimit: "15mb",
     },
   },
 };
+
+if (process.env.NODE_ENV === "development") {
+  await setupDevPlatform();
+}
 
 export default nextConfig;

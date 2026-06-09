@@ -47,6 +47,8 @@ npm install
      Rate-Limit-Funktionen an.
    - `0004_upload_consents.sql` – legt die Tabelle `upload_consents` für die
      DSGVO-Einwilligung zur Anthropic-Datenübermittlung an.
+   - `0005_analysis_feedback.sql` – legt die Tabelle `analysis_feedback` für
+     Nutzerfeedback zur Analysequalität (hilfreich / nicht hilfreich) an.
 3. Unter **Settings → API** die Projekt-URL und die Keys kopieren.
 4. Optional unter **Authentication → Providers → Email** einstellen, ob eine
    E-Mail-Bestätigung erforderlich ist (für lokale Tests kann sie deaktiviert

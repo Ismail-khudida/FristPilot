@@ -5,12 +5,30 @@ import { useRouter } from "next/navigation";
 
 const ACCEPT = "application/pdf,image/jpeg,image/png";
 
+type UploadStep = "idle" | "uploading" | "analyzing" | "done";
+
+const STEP_LABELS: Record<UploadStep, string> = {
+  idle: "",
+  uploading: "Datei wird hochgeladen…",
+  analyzing: "KI analysiert Dokument…",
+  done: "Analyse abgeschlossen!",
+};
+
+const ERROR_MESSAGES: Record<string, string> = {
+  "rate_limit": "Du hast heute dein tägliches Limit erreicht. Bitte versuche es morgen erneut.",
+  "file_too_large": "Die Datei ist zu groß. Bitte lade eine Datei unter 10 MB hoch.",
+  "unsupported_type": "Dieses Dateiformat wird nicht unterstützt. Bitte PDF, JPG oder PNG hochladen.",
+  "not_authenticated": "Du bist nicht mehr angemeldet. Bitte lade die Seite neu.",
+};
+
 export function UploadForm() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<"idle" | "uploading">("idle");
+  const [step, setStep] = useState<UploadStep>("idle");
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,49 +39,74 @@ export function UploadForm() {
       return;
     }
 
-    setStatus("uploading");
+    setStep("uploading");
+    setProgress(20);
+
     try {
       const body = new FormData();
       body.append("file", file);
+
+      setProgress(40);
       const res = await fetch("/api/upload", { method: "POST", body });
+      setStep("analyzing");
+      setProgress(70);
+
       const data = (await res.json()) as {
         documentId?: string | null;
         error?: string;
+        code?: string;
       };
 
+      setProgress(100);
+
       if (!res.ok) {
-        setError(data.error ?? "Beim Hochladen ist ein Fehler aufgetreten.");
-        // Bei reinem Analyse-Fehler trotzdem zum (gespeicherten) Dokument.
+        const msg = data.code && ERROR_MESSAGES[data.code]
+          ? ERROR_MESSAGES[data.code]
+          : data.error ?? "Beim Hochladen ist ein Fehler aufgetreten.";
+        setError(msg);
         if (data.documentId) {
           router.push(`/documents/${data.documentId}`);
           return;
         }
-        setStatus("idle");
+        setStep("idle");
+        setProgress(0);
         return;
       }
 
       if (data.documentId) {
+        setStep("done");
         router.push(`/documents/${data.documentId}`);
       } else {
         setError("Unerwartete Antwort vom Server.");
-        setStatus("idle");
+        setStep("idle");
+        setProgress(0);
       }
     } catch {
       setError("Verbindung fehlgeschlagen. Bitte erneut versuchen.");
-      setStatus("idle");
+      setStep("idle");
+      setProgress(0);
     }
   }
 
-  const busy = status === "uploading";
+  const busy = step === "uploading" || step === "analyzing";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Drop Zone */}
       <div
-        className="cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-surface-muted px-6 py-10 text-center transition-colors hover:border-navy/50"
+        className={`cursor-pointer rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
+          dragOver
+            ? "border-navy bg-navy/5"
+            : file
+            ? "border-green-400 bg-green-50"
+            : "border-gray-300 bg-surface-muted hover:border-navy/50"
+        } ${busy ? "pointer-events-none opacity-60" : ""}`}
         onClick={() => !busy && inputRef.current?.click()}
-        onDragOver={(e) => e.preventDefault()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
+          setDragOver(false);
           if (busy) return;
           const dropped = e.dataTransfer.files?.[0];
           if (dropped) setFile(dropped);
@@ -78,32 +121,60 @@ export function UploadForm() {
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
         {file ? (
-          <p className="text-sm font-medium text-ink">{file.name}</p>
+          <div className="space-y-1">
+            <div className="text-2xl">📄</div>
+            <p className="font-medium text-ink">{file.name}</p>
+            <p className="text-xs text-ink-soft">
+              {(file.size / 1024 / 1024).toFixed(1)} MB · Klicken zum Ändern
+            </p>
+          </div>
         ) : (
-          <p className="text-sm text-ink-soft">
-            Datei hierher ziehen oder <span className="text-navy underline">auswählen</span>
-            <br />
-            <span className="text-xs text-gray-400">PDF, JPG oder PNG (max. 10 MB)</span>
-          </p>
+          <div className="space-y-1">
+            <div className="text-3xl">⬆️</div>
+            <p className="text-sm text-ink-soft">
+              Datei hierher ziehen oder{" "}
+              <span className="font-medium text-navy underline">auswählen</span>
+            </p>
+            <p className="text-xs text-gray-400">PDF, JPG oder PNG · max. 10 MB</p>
+          </div>
         )}
       </div>
 
+      {/* Progress Bar */}
+      {busy && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-ink-soft">{STEP_LABELS[step]}</span>
+            <span className="text-xs text-ink-soft">{progress}%</span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-navy transition-all duration-700 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="flex gap-4 text-xs text-ink-soft">
+            <span className={step === "uploading" ? "font-medium text-navy" : "text-green-600"}>
+              {step === "uploading" ? "→ " : "✓ "}Hochladen
+            </span>
+            <span className={step === "analyzing" ? "font-medium text-navy" : ""}>
+              {step === "analyzing" ? "→ " : ""}KI-Analyse
+            </span>
+            <span>Fristen erkennen</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
       {error && (
         <p className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">
           {error}
         </p>
       )}
 
-      {busy && (
-        <p className="rounded-lg bg-surface-muted px-3 py-2 text-sm text-ink-soft">
-          Dokument wird hochgeladen und analysiert. Das kann einen Moment
-          dauern…
-        </p>
-      )}
-
       <div className="flex gap-3">
         <button type="submit" disabled={busy || !file} className="btn-primary">
-          {busy ? "Wird analysiert…" : "Hochladen & analysieren"}
+          {busy ? STEP_LABELS[step] : "Hochladen & analysieren"}
         </button>
         {file && !busy && (
           <button
@@ -111,6 +182,7 @@ export function UploadForm() {
             className="btn-secondary"
             onClick={() => {
               setFile(null);
+              setError(null);
               if (inputRef.current) inputRef.current.value = "";
             }}
           >

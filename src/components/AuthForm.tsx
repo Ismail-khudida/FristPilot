@@ -25,10 +25,13 @@ export function AuthForm({ mode, redirectTo, notice }: AuthFormProps) {
     <div className="w-full max-w-md">
       <div className="mb-8 text-center">
         <div className="mb-2 text-2xl font-semibold text-navy">FristPilot</div>
-        <p className="text-sm text-ink-soft">
+        <p className="text-sm font-medium text-ink">
+          Dein KI-Assistent für Fristen und wichtige Dokumente.
+        </p>
+        <p className="mt-1 text-sm text-ink-soft">
           {isLogin
             ? "Willkommen zurück. Melde dich an, um deine Dokumente zu sehen."
-            : "Erstelle ein Konto, um Fristen sicher im Blick zu behalten."}
+            : "Kostenlos registrieren und sofort loslegen. Kein Abo."}
         </p>
       </div>
 

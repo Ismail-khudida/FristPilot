@@ -76,3 +76,17 @@ export async function deleteDocument(
   revalidatePath("/reminders");
   redirect("/dashboard");
 }
+
+export async function recordFeedback(
+  documentId: string,
+  helpful: boolean,
+): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("analysis_feedback").upsert(
+    { document_id: documentId, user_id: user.id, helpful },
+    { onConflict: "document_id,user_id", ignoreDuplicates: false },
+  );
+}

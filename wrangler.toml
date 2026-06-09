@@ -1,0 +1,10 @@
+name = "fristpilot"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+[vars]
+SUPABASE_STORAGE_BUCKET = "documents"
+DAILY_USER_ANALYSIS_LIMIT = "10"
+DAILY_GLOBAL_ANALYSIS_LIMIT = "200"
+ANTHROPIC_MODEL = "claude-opus-4-8"

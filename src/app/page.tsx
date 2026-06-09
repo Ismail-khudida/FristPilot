@@ -1,13 +1,205 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-// Einstiegspunkt: angemeldete Nutzer landen im Dashboard, alle anderen
-// werden zur Anmeldung geleitet.
 export default async function Home() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  redirect(user ? "/dashboard" : "/login");
+  if (user) redirect("/dashboard");
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Nav */}
+      <header className="border-b border-gray-100">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+          <span className="text-lg font-semibold text-navy">FristPilot</span>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="text-sm font-medium text-ink-soft hover:text-ink">
+              Anmelden
+            </Link>
+            <Link href="/register" className="btn-primary text-sm">
+              Kostenlos starten
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="mx-auto max-w-5xl px-4 py-20 text-center">
+        <div className="mb-4 inline-flex items-center rounded-full border border-navy/20 bg-navy/5 px-4 py-1.5 text-xs font-medium text-navy">
+          Closed Beta · Kostenlos in der Testphase
+        </div>
+        <h1 className="mt-4 text-4xl font-bold leading-tight text-ink sm:text-5xl">
+          Versteh jeden Brief<br />
+          <span className="text-navy">in 30 Sekunden.</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
+          FristPilot liest dein Dokument, erklärt es auf verständlichem Deutsch
+          und zeigt dir genau, was du bis wann erledigen musst — damit du keine
+          wichtige Frist mehr verpasst.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <Link href="/register" className="btn-primary px-8 py-3 text-base">
+            Jetzt kostenlos testen
+          </Link>
+          <Link href="#so-funktioniert-es" className="btn-secondary px-8 py-3 text-base">
+            Wie funktioniert es?
+          </Link>
+        </div>
+        <p className="mt-4 text-xs text-ink-soft">
+          Kein Abo · Kein Kreditkarte · Einfach loslegen
+        </p>
+      </section>
+
+      {/* Trust Bar */}
+      <section className="border-y border-gray-100 bg-surface-muted py-6">
+        <div className="mx-auto max-w-5xl px-4">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-ink-soft">
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Daten werden nicht gespeichert oder weitergegeben
+            </span>
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              DSGVO-konform · Made in Germany
+            </span>
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              PDF, JPG und PNG unterstützt
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem */}
+      <section className="mx-auto max-w-5xl px-4 py-20">
+        <div className="grid gap-8 md:grid-cols-3">
+          {[
+            {
+              emoji: "📬",
+              title: "Behördenpost",
+              text: "Amtliche Briefe sind oft unverständlich. FristPilot erklärt sie in klarer Sprache — ohne Fachwissen.",
+            },
+            {
+              emoji: "⚠️",
+              title: "Versteckte Fristen",
+              text: "In Versicherungen, Rechnungen und Mahnungen stecken Fristen. FristPilot findet sie, bevor es zu spät ist.",
+            },
+            {
+              emoji: "🗓️",
+              title: "Erinnerungen",
+              text: "Erkannte Fristen werden direkt als Erinnerung gespeichert — damit du rechtzeitig handelst.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="card text-center">
+              <div className="mb-3 text-4xl">{item.emoji}</div>
+              <h3 className="mb-2 font-semibold text-ink">{item.title}</h3>
+              <p className="text-sm leading-relaxed text-ink-soft">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="so-funktioniert-es" className="bg-surface-muted py-20">
+        <div className="mx-auto max-w-5xl px-4">
+          <h2 className="mb-12 text-center text-3xl font-bold text-ink">
+            So einfach geht's
+          </h2>
+          <div className="grid gap-8 md:grid-cols-3">
+            {[
+              {
+                step: "1",
+                title: "Dokument hochladen",
+                text: "Brief, Rechnung, Versicherung oder Behördenpost als PDF oder Foto hochladen. Fertig in Sekunden.",
+              },
+              {
+                step: "2",
+                title: "KI analysiert",
+                text: "FristPilot liest das Dokument, erkennt Fristen und erklärt den Inhalt auf verständlichem Deutsch.",
+              },
+              {
+                step: "3",
+                title: "Frist nicht vergessen",
+                text: "Erkannte Fristen als Erinnerung speichern. Du siehst alles übersichtlich im Dashboard.",
+              },
+            ].map((item) => (
+              <div key={item.step} className="text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-navy text-lg font-bold text-white">
+                  {item.step}
+                </div>
+                <h3 className="mb-2 font-semibold text-ink">{item.title}</h3>
+                <p className="text-sm leading-relaxed text-ink-soft">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* For whom */}
+      <section className="mx-auto max-w-5xl px-4 py-20">
+        <h2 className="mb-4 text-center text-3xl font-bold text-ink">
+          Für wen ist FristPilot?
+        </h2>
+        <p className="mx-auto mb-12 max-w-xl text-center text-ink-soft">
+          Für alle, die wichtige Post erhalten — und keine Zeit haben, jedes
+          Dokument selbst zu durchsuchen.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[
+            "Versicherungspost und Vertragskündigungen",
+            "Mahnungen und Zahlungsfristen",
+            "Behördenbriefe und Widerspruchsfristen",
+            "Mietverträge und Nebenkostenabrechnungen",
+            "Arztbriefe und Krankenkassenanfragen",
+            "Steuerunterlagen und Abgabefristen",
+          ].map((item) => (
+            <div key={item} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-ink">
+              <svg className="h-4 w-4 shrink-0 text-navy" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-navy py-20 text-center text-white">
+        <div className="mx-auto max-w-xl px-4">
+          <h2 className="text-3xl font-bold">Nie wieder eine Frist verpassen.</h2>
+          <p className="mt-4 text-navy-light opacity-80">
+            Kostenlos testen. Kein Abo. Kein Risiko.
+          </p>
+          <Link
+            href="/register"
+            className="mt-8 inline-flex items-center rounded-lg bg-white px-8 py-3 text-base font-semibold text-navy transition-colors hover:bg-gray-50"
+          >
+            Jetzt starten — kostenlos
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-100 py-6">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 text-xs text-ink-soft">
+          <span>© 2025 FristPilot</span>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:underline">Datenschutz</Link>
+            <Link href="/imprint" className="hover:underline">Impressum</Link>
+            <Link href="/pricing" className="hover:underline">Preise</Link>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
 }

@@ -6,8 +6,48 @@ import { PrivacyNotice } from "@/components/PrivacyNotice";
 import { RiskBadge } from "@/components/RiskBadge";
 import { CreateReminderButton } from "@/components/CreateReminderButton";
 import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { ProcessingPoller } from "@/components/ProcessingPoller";
+import { AnalysisFeedback } from "@/components/AnalysisFeedback";
+import { formatDate, formatDateTime, daysUntil } from "@/lib/format";
 import type { DocumentRow } from "@/lib/types";
+
+function ConfidenceLabel({ value }: { value: number | null | undefined }) {
+  const pct = Math.round((value ?? 0) * 100);
+  if (pct >= 80) return <span className="text-xs font-medium text-green-700">KI-Sicherheit: Hoch ({pct}%)</span>;
+  if (pct >= 50) return <span className="text-xs font-medium text-amber-700">KI-Sicherheit: Mittel ({pct}%)</span>;
+  return <span className="text-xs font-medium text-red-700">KI-Sicherheit: Niedrig ({pct}%)</span>;
+}
+
+function DeadlineUrgency({ date }: { date: string | null }) {
+  if (!date) return null;
+  const days = daysUntil(date);
+  if (days === null) return null;
+  if (days < 0) return (
+    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+      <span className="text-base">🚨</span>
+      <span className="text-sm font-semibold text-red-700">Überfällig seit {Math.abs(days)} Tag(en)</span>
+    </div>
+  );
+  if (days === 0) return (
+    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+      <span className="text-base">⚠️</span>
+      <span className="text-sm font-semibold text-red-700">Heute fällig!</span>
+    </div>
+  );
+  if (days <= 7) return (
+    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+      <span className="text-base">⏰</span>
+      <span className="text-sm font-semibold text-amber-700">Frist in {days} Tag{days === 1 ? "" : "en"}</span>
+    </div>
+  );
+  if (days <= 30) return (
+    <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+      <span className="text-base">🗓️</span>
+      <span className="text-sm text-blue-700">Frist in {days} Tagen</span>
+    </div>
+  );
+  return null;
+}
 
 export default async function DocumentPage({
   params,
@@ -41,10 +81,14 @@ export default async function DocumentPage({
 
       {doc.status === "processing" ? (
         <div className="card">
-          <p className="text-sm font-medium text-ink">Analyse läuft noch …</p>
-          <p className="mt-1 text-sm text-ink-soft">
-            Dein Dokument wird gerade ausgewertet. Bitte lade die Seite in einem
-            Moment neu.
+          <ProcessingPoller documentId={doc.id} />
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+            <p className="text-sm font-medium text-ink">Analyse läuft…</p>
+          </div>
+          <p className="mt-2 text-sm text-ink-soft">
+            Dein Dokument wird gerade von der KI ausgewertet. Das dauert
+            normalerweise 10–30 Sekunden. Diese Seite aktualisiert sich automatisch.
           </p>
         </div>
       ) : doc.status === "failed" || !analysis ? (
@@ -67,10 +111,7 @@ export default async function DocumentPage({
                 </span>
                 <RiskBadge risk={analysis.risk_level} />
               </div>
-              <span className="text-xs text-ink-soft">
-                Sicherheit der Analyse:{" "}
-                {Math.round((analysis.confidence ?? 0) * 100)}%
-              </span>
+              <ConfidenceLabel value={analysis.confidence} />
             </div>
 
             <div>
@@ -80,7 +121,7 @@ export default async function DocumentPage({
 
             <div>
               <h2 className="text-sm font-semibold text-ink-soft">
-                Einfache Zusammenfassung
+                Was steht in diesem Dokument?
               </h2>
               <p className="leading-relaxed text-ink">
                 {analysis.summary_simple || "Keine Zusammenfassung verfügbar."}
@@ -104,13 +145,14 @@ export default async function DocumentPage({
               <div className="space-y-4">
                 {analysis.deadlines.map((deadline, i) => (
                   <div key={i} className="card space-y-3">
+                    {/* Urgency Banner */}
+                    <DeadlineUrgency date={deadline.date} />
+
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="inline-flex items-center rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
                         Mögliche Frist erkannt
                       </span>
-                      <span className="text-xs text-ink-soft">
-                        Confidence: {Math.round((deadline.confidence ?? 0) * 100)}%
-                      </span>
+                      <ConfidenceLabel value={deadline.confidence} />
                     </div>
 
                     <div>
@@ -141,14 +183,13 @@ export default async function DocumentPage({
                       </p>
                     )}
 
-                    {/* Nachvollziehbarkeit: Grundlage (Evidence) + Seite */}
                     {deadline.evidence_text && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
                           Grundlage im Dokument
                         </p>
                         <blockquote className="mt-1 border-l-2 border-navy/30 pl-3 text-sm italic text-ink-soft">
-                          „{deadline.evidence_text}“
+                          „{deadline.evidence_text}"
                         </blockquote>
                       </div>
                     )}
@@ -191,13 +232,18 @@ export default async function DocumentPage({
               </ul>
             </section>
           )}
+
+          {/* Feedback */}
+          <div className="rounded-xl border border-gray-200 bg-surface-muted p-4">
+            <AnalysisFeedback documentId={doc.id} />
+          </div>
         </>
       )}
 
       <PrivacyNotice />
       <LegalDisclaimer />
 
-      {/* Dokument vollständig löschen */}
+      {/* Dokument löschen */}
       <div className="border-t border-gray-200 pt-6">
         <h2 className="mb-1 text-sm font-semibold text-ink">
           Dokument verwalten

@@ -268,6 +268,29 @@ create policy "Users can insert own consents"
   on public.upload_consents for insert
   with check (auth.uid() = user_id);
 
+-- ------------------------------------------------------------------
+-- analysis_feedback – Nutzerfeedback zur Analysequalität
+-- ------------------------------------------------------------------
+create table if not exists public.analysis_feedback (
+  id           uuid primary key default gen_random_uuid(),
+  document_id  uuid not null references public.documents (id) on delete cascade,
+  user_id      uuid not null references auth.users (id) on delete cascade,
+  helpful      boolean not null,
+  created_at   timestamptz not null default now()
+);
+
+create unique index if not exists analysis_feedback_doc_user_uidx
+  on public.analysis_feedback (document_id, user_id);
+
+alter table public.analysis_feedback enable row level security;
+
+drop policy if exists "Users can manage own feedback" on public.analysis_feedback;
+create policy "Users can manage own feedback"
+  on public.analysis_feedback
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
 revoke all on function public.check_analysis_quota(int, int) from public;
 revoke all on function public.consume_analysis(int, int) from public;
 revoke all on function public.finalize_analysis(uuid, uuid, text) from public;

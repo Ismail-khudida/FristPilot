@@ -3,13 +3,20 @@
 // funktioniert unverändert. Keine personenbezogenen Dokumentinhalte werden
 // an Sentry gesendet.
 
-let sentryInstance: typeof import("@sentry/nextjs") | null = null;
+interface SentryLike {
+  withScope: (cb: (scope: { setTag: (k: string, v: string) => void; setExtra: (k: string, v: unknown) => void }) => void) => void;
+  captureException: (err: unknown) => void;
+  captureMessage: (msg: string, level: string) => void;
+}
 
-async function getSentry() {
+let sentryInstance: SentryLike | null = null;
+
+async function getSentry(): Promise<SentryLike | null> {
   if (!process.env.SENTRY_DSN) return null;
   if (sentryInstance) return sentryInstance;
   try {
-    sentryInstance = await import("@sentry/nextjs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    sentryInstance = require("@sentry/nextjs") as SentryLike;
     return sentryInstance;
   } catch {
     return null;
