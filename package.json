@@ -6,15 +6,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "preview": "npm run pages:build && wrangler pages dev",
+    "pages:build": "npx @opennextjs/cloudflare build",
+    "preview": "npm run pages:build && wrangler dev",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.69.0",
+    "@opennextjs/cloudflare": "^1.19.11",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.45.0",
+    "esbuild": "^0.25.4",
     "next": "^15.5.19",
     "react": "19.1.0",
     "react-dom": "19.1.0",
