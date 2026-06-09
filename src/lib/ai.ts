@@ -2,7 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { parseAnalysisResult, type DocumentAnalysis } from "./analysis-schema";
 
 // Modellname ausschließlich über Environment Variable, mit sinnvollem Fallback.
-const DEFAULT_MODEL = "claude-opus-4-8";
+// Sonnet ist für OCR + Fristen-Extraktion praktisch gleichwertig zu Opus,
+// aber deutlich günstiger – das erlaubt höhere Limits bei besserer Marge.
+// Über ANTHROPIC_MODEL jederzeit überschreibbar (z. B. claude-opus-4-8).
+const DEFAULT_MODEL = "claude-sonnet-4-6";
 
 function resolveModel(): string {
   const fromEnv = process.env.ANTHROPIC_MODEL?.trim();

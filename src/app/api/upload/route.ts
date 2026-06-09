@@ -157,11 +157,16 @@ export async function POST(request: Request) {
       mimeType: detected.mime,
     });
 
+    // Datenschutz-by-Default: Wir speichern nur das strukturierte Analyse-
+    // Ergebnis. Der Originalinhalt (extracted_text) wird NICHT dauerhaft in der
+    // DB abgelegt, und die hochgeladene Datei wird nach der Analyse sofort aus
+    // dem Storage gelöscht (file_url = null). So bleibt vom sensiblen Dokument
+    // selbst nichts Dauerhaftes liegen – nur die für die App nötige Auswertung.
     const { error: updateError } = await supabase
       .from("documents")
       .update({
-        file_url: storagePath,
-        extracted_text: analysis.extracted_text ?? null,
+        file_url: null,
+        extracted_text: null,
         analysis_json: analysis,
         status: "done",
         analysis_error: null,
@@ -180,6 +185,9 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    // Originaldatei nach erfolgreicher Analyse entfernen (Privacy by Default).
+    await cleanupStorage();
 
     await finalizeQuota(supabase, consumed.usageId, documentId, "completed");
     return NextResponse.json({ documentId });

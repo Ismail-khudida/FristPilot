@@ -47,7 +47,13 @@ export default function PrivacyPage() {
           <SubSection title="2.2 Dokument-Uploads">
             <p>
               Dokumente (PDF, JPG, PNG), die Sie hochladen, werden auf Servern
-              von <strong>Supabase</strong> gespeichert. Jedes Dokument ist
+              von <strong>Supabase</strong> nur kurzzeitig zur Analyse
+              zwischengespeichert und{" "}
+              <strong>unmittelbar nach Abschluss der Analyse automatisch
+              gelöscht</strong>. Dauerhaft gespeichert wird ausschließlich das
+              strukturierte Analyse-Ergebnis (z. B. erkannter Absender,
+              Zusammenfassung, mögliche Fristen) – nicht das Originaldokument und
+              nicht dessen vollständiger Textinhalt. Jeder Eintrag ist
               ausschließlich Ihrem Nutzerkonto zugeordnet. Andere Nutzer haben
               keinen Zugriff.
             </p>
@@ -84,14 +90,14 @@ export default function PrivacyPage() {
 
         <Section title="3. Speicherung und Löschung">
           <p>
-            Ihre Dokumente werden gespeichert, bis Sie diese in der App löschen
-            oder Ihr Konto schließen. Mit dem Löschen eines Dokuments werden
-            sowohl der Datenbankeintrag als auch die Datei im Storage entfernt.
+            Das hochgeladene Originaldokument wird ausschließlich für die Dauer
+            der KI-Analyse zwischengespeichert und danach{" "}
+            <strong>automatisch und unwiderruflich gelöscht</strong>. Das
+            strukturierte Analyse-Ergebnis bleibt in Ihrem Konto gespeichert,
+            bis Sie es in der App löschen oder Ihr Konto schließen. Mit dem
+            Löschen werden der Datenbankeintrag sowie alle verknüpften
+            Erinnerungen entfernt.
           </p>
-          <Placeholder
-            label="Konkrete Speicherdauer und automatische Löschfristen festlegen und hier eintragen"
-            className="mt-3"
-          />
         </Section>
 
         <Section title="4. Weitergabe an Dienstleister">

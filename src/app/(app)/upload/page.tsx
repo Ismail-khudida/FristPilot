@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { UploadForm } from "@/components/UploadForm";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
 import { PrivacyNotice } from "@/components/PrivacyNotice";
@@ -14,7 +15,13 @@ export default async function UploadPage() {
         <p className="mt-1 text-sm text-ink-soft">
           Lade einen Brief, eine Rechnung oder ein anderes Dokument hoch.
           FristPilot erklärt es in einfacher Sprache und sucht nach möglichen
-          Fristen.
+          Fristen. Das Originaldokument wird nach der Analyse automatisch
+          gelöscht.
+        </p>
+        <p className="mt-2 text-sm">
+          <Link href="/demo" className="text-navy underline">
+            Erst ein Beispiel ansehen →
+          </Link>
         </p>
       </div>
 
