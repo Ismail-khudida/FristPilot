@@ -43,6 +43,7 @@ Das JSON-Objekt hat exakt diese Struktur:
   "deadlines": [
     {
       "date": "YYYY-MM-DD oder null, falls kein konkretes Datum erkennbar",
+      "deadline_type": "zahlungsfrist | kuendigungsfrist | widerspruchsfrist | nachreichfrist | termin | vertragsverlaengerung | sonstige",
       "description": "Was passiert an diesem Datum?",
       "required_action": "Was muss der Nutzer wahrscheinlich tun?",
       "confidence": 0.0,
@@ -60,6 +61,7 @@ Regeln:
 - Antworte auf Deutsch.
 - Erfinde keine Fristen. Wenn keine Frist erkennbar ist, gib ein leeres Array zurück.
 - "evidence_text": Zitiere möglichst wörtlich die Stelle, die zur Frist führt, damit der Nutzer die Aussage nachvollziehen kann. Lass das Feld leer, wenn es keine eindeutige Stelle gibt.
+- "deadline_type": Ordne jede Frist einem Typ zu. zahlungsfrist = Rechnung/Mahnung zu zahlen; kuendigungsfrist = letzter Termin zum Kündigen; widerspruchsfrist = Frist für Widerspruch/Einspruch (z. B. Behörde, Bescheid); nachreichfrist = Unterlagen einreichen/nachreichen; termin = fester Termin (z. B. Anhörung); vertragsverlaengerung = automatische Verlängerung droht; sonstige = nichts davon passt. Im Zweifel "sonstige".
 - "page_number": Seitenzahl der Fundstelle (1-basiert). Wenn nicht bestimmbar, gib null an – rate nicht.
 - "confidence" (pro Frist und gesamt) ist eine Zahl zwischen 0.0 und 1.0 und beschreibt, wie sicher du dir bist.
 - "risk_level": high = wichtige mögliche Frist mit potenziellen rechtlichen/finanziellen Folgen, medium = relevant aber unkritisch, low = informativ.

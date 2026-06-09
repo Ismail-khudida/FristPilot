@@ -74,7 +74,7 @@ export default function DemoPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="inline-flex items-center rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-                Mögliche Frist erkannt
+                Mögliche Kündigungsfrist erkannt
               </span>
               <span className="text-xs font-medium text-green-700">
                 KI-Sicherheit: Hoch (85%)

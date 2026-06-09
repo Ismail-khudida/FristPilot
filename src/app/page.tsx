@@ -34,13 +34,14 @@ export default async function Home() {
           Closed Beta · Kostenlos in der Testphase
         </div>
         <h1 className="mt-4 text-4xl font-bold leading-tight text-ink sm:text-5xl">
-          Versteh jeden Brief<br />
-          <span className="text-navy">in 30 Sekunden.</span>
+          Verpasse keine<br />
+          <span className="text-navy">Frist mehr.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-          FristPilot liest dein Dokument, erklärt es auf verständlichem Deutsch
-          und zeigt dir genau, was du bis wann erledigen musst — damit du keine
-          wichtige Frist mehr verpasst.
+          FristPilot liest deine Briefe, erkennt was wichtig ist und zeigt dir
+          genau, <strong className="font-semibold text-ink">was du bis wann tun
+          musst</strong> — von der Krankenkasse über Versicherungen bis zur
+          Mahnung.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Link href="/register" className="btn-primary px-8 py-3 text-base">
@@ -51,7 +52,54 @@ export default async function Home() {
           </Link>
         </div>
         <p className="mt-4 text-xs text-ink-soft">
-          Kein Abo · Kein Kreditkarte · Einfach loslegen
+          Kein Abo · Keine Kreditkarte · Einfach loslegen
+        </p>
+      </section>
+
+      {/* Beispiel-Karten: konkrete Frist + Handlung */}
+      <section className="mx-auto -mt-6 max-w-5xl px-4 pb-12">
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              tag: "Krankenkasse",
+              tagClass: "bg-blue-50 text-blue-700",
+              title: "Nachweis einreichen",
+              due: "bis 14.07.",
+              action: "Einkommensnachweis hochladen",
+            },
+            {
+              tag: "Versicherung",
+              tagClass: "bg-amber-50 text-amber-700",
+              title: "Vertrag verlängert sich automatisch",
+              due: "Kündigung bis 30.11.",
+              action: "Prüfen oder kündigen",
+            },
+            {
+              tag: "Rechnung",
+              tagClass: "bg-accent-soft text-accent",
+              title: "Zahlung offen",
+              due: "fällig bis 02.07.",
+              action: "Überweisen, Mahngebühr vermeiden",
+            },
+          ].map((c) => (
+            <div key={c.tag} className="card text-left">
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${c.tagClass}`}>
+                {c.tag}
+              </span>
+              <p className="mt-3 font-semibold text-ink">{c.title}</p>
+              <p className="mt-1 text-sm font-medium text-navy">{c.due}</p>
+              <p className="mt-2 flex items-start gap-1.5 text-sm text-ink-soft">
+                <span className="text-navy">→</span>
+                {c.action}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-xs text-ink-soft">
+          So sieht das Ergebnis aus — neugierig?{" "}
+          <Link href="/demo" className="text-navy underline">
+            Komplettes Beispiel ansehen
+          </Link>
         </p>
       </section>
 

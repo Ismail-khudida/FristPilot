@@ -7,6 +7,29 @@ import { z } from "zod";
 export const RISK_LEVELS = ["low", "medium", "high"] as const;
 export type RiskLevel = (typeof RISK_LEVELS)[number];
 
+// Deutsche Fristtypen. "sonstige" als sicherer Fallback, falls die KI keinen
+// eindeutigen Typ erkennt.
+export const DEADLINE_TYPES = [
+  "zahlungsfrist",
+  "kuendigungsfrist",
+  "widerspruchsfrist",
+  "nachreichfrist",
+  "termin",
+  "vertragsverlaengerung",
+  "sonstige",
+] as const;
+export type DeadlineType = (typeof DEADLINE_TYPES)[number];
+
+export const DEADLINE_TYPE_LABELS: Record<DeadlineType, string> = {
+  zahlungsfrist: "Zahlungsfrist",
+  kuendigungsfrist: "Kündigungsfrist",
+  widerspruchsfrist: "Widerspruchsfrist",
+  nachreichfrist: "Nachreichfrist",
+  termin: "Termin",
+  vertragsverlaengerung: "Vertragsverlängerung",
+  sonstige: "Frist",
+};
+
 // Leerer String oder fehlender Wert -> null.
 const nullableDate = z
   .preprocess(
@@ -39,6 +62,7 @@ const safeString = (fallback: string) =>
 
 export const DeadlineSchema = z.object({
   date: nullableDate,
+  deadline_type: z.enum(DEADLINE_TYPES).catch("sonstige"),
   description: safeString("").catch(""),
   required_action: safeString("").catch(""),
   confidence,
@@ -50,6 +74,7 @@ export type Deadline = z.infer<typeof DeadlineSchema>;
 
 const DEFAULT_DEADLINE: Deadline = {
   date: null,
+  deadline_type: "sonstige",
   description: "",
   required_action: "",
   confidence: 0,

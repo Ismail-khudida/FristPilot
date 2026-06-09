@@ -9,6 +9,7 @@ import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
 import { ProcessingPoller } from "@/components/ProcessingPoller";
 import { AnalysisFeedback } from "@/components/AnalysisFeedback";
 import { formatDate, formatDateTime, daysUntil } from "@/lib/format";
+import { DEADLINE_TYPE_LABELS } from "@/lib/analysis-schema";
 import type { DocumentRow } from "@/lib/types";
 
 function ConfidenceLabel({ value }: { value: number | null | undefined }) {
@@ -150,7 +151,7 @@ export default async function DocumentPage({
 
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="inline-flex items-center rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-                        Mögliche Frist erkannt
+                        Mögliche {DEADLINE_TYPE_LABELS[deadline.deadline_type] ?? "Frist"} erkannt
                       </span>
                       <ConfidenceLabel value={deadline.confidence} />
                     </div>

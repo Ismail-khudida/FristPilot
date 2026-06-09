@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ReminderItem } from "@/components/ReminderItem";
 import { RiskBadge } from "@/components/RiskBadge";
-import { formatDate, formatDateTime, dueLabel } from "@/lib/format";
+import { formatDateTime, daysUntil } from "@/lib/format";
 import type { ReminderRow } from "@/lib/types";
 
 interface DocSummary {
@@ -26,21 +26,38 @@ export default async function DashboardPage() {
       .from("documents")
       .select("id, file_name, status, created_at, analysis_json")
       .order("created_at", { ascending: false })
-      .limit(5),
+      .limit(8),
   ]);
 
   const openReminders = (reminderData ?? []) as ReminderRow[];
   const documents = (documentData ?? []) as unknown as DocSummary[];
-  const nextAction = openReminders.find((r) => r.due_date) ?? openReminders[0];
+
+  // Handlungs-Triage: jede offene Erinnerung einer Dringlichkeitsstufe zuordnen.
+  const actNow: ReminderRow[] = []; // überfällig oder heute fällig
+  const soon: ReminderRow[] = []; // in 1–7 Tagen
+  const later: ReminderRow[] = []; // später als 7 Tage
+  const toReview: ReminderRow[] = []; // ohne Datum -> unklar/prüfen
+
+  for (const r of openReminders) {
+    const days = daysUntil(r.due_date);
+    if (days === null) toReview.push(r);
+    else if (days <= 0) actNow.push(r);
+    else if (days <= 7) soon.push(r);
+    else later.push(r);
+  }
+
+  // Fehlgeschlagene Analysen brauchen ebenfalls Aufmerksamkeit ("Prüfen").
+  const failedDocs = documents.filter((d) => d.status === "failed");
+
   const isEmpty = documents.length === 0 && openReminders.length === 0;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-ink">Dein Bürokratie-Überblick</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Dein Überblick über offene Fristen und Dokumente.
+            Was ist wichtig, was läuft bald ab — und was musst du tun?
           </p>
         </div>
         <Link href="/upload" className="btn-primary">
@@ -63,6 +80,9 @@ export default async function DashboardPage() {
             <Link href="/upload" className="btn-primary">
               Erstes Dokument hochladen
             </Link>
+            <Link href="/demo" className="btn-secondary">
+              Erst Beispiel ansehen
+            </Link>
           </div>
           <p className="mt-4 text-xs text-ink-soft">
             PDF, JPG oder PNG · kostenlos · max. 10 MB
@@ -70,61 +90,84 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Wichtigste nächste Aktion */}
-      {nextAction && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-soft">
-            Wichtigste nächste Aktion
-          </h2>
-          <div className="card border-l-4 border-l-accent">
-            <p className="font-semibold text-ink">{nextAction.title}</p>
-            {nextAction.description && (
-              <p className="mt-1 text-sm text-ink-soft">
-                {nextAction.description}
-              </p>
-            )}
-            <p className="mt-2 text-sm">
-              <span className="text-ink-soft">
-                {formatDate(nextAction.due_date)}
-              </span>
-              {nextAction.due_date && (
-                <span className="ml-2 font-medium text-accent">
-                  {dueLabel(nextAction.due_date)}
-                </span>
-              )}
-            </p>
-          </div>
-        </section>
+      {/* Sofort handeln */}
+      {actNow.length > 0 && (
+        <TriageSection
+          label={`Sofort handeln (${actNow.length})`}
+          tone="critical"
+          hint="Überfällig oder heute fällig."
+        >
+          {actNow.map((r) => (
+            <ReminderItem key={r.id} reminder={r} />
+          ))}
+        </TriageSection>
       )}
 
-      {/* Offene Fristen */}
-      {!isEmpty && (
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-soft">
-              Offene Fristen ({openReminders.length})
-            </h2>
-            {openReminders.length > 0 && (
-              <Link href="/reminders" className="text-sm text-navy underline">
-                Alle ansehen
-              </Link>
-            )}
-          </div>
-          {openReminders.length === 0 ? (
-            <div className="card">
-              <p className="text-sm text-ink-soft">
-                Noch keine Erinnerungen. Lade ein Dokument hoch und speichere
-                erkannte Fristen als Erinnerung.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {openReminders.slice(0, 4).map((r) => (
-                <ReminderItem key={r.id} reminder={r} />
-              ))}
-            </div>
+      {/* Bald fällig */}
+      {soon.length > 0 && (
+        <TriageSection
+          label={`Bald fällig (${soon.length})`}
+          tone="warn"
+          hint="In den nächsten 7 Tagen."
+        >
+          {soon.map((r) => (
+            <ReminderItem key={r.id} reminder={r} />
+          ))}
+        </TriageSection>
+      )}
+
+      {/* Prüfen */}
+      {(toReview.length > 0 || failedDocs.length > 0) && (
+        <TriageSection
+          label={`Prüfen (${toReview.length + failedDocs.length})`}
+          tone="neutral"
+          hint="Ohne festes Datum oder Analyse fehlgeschlagen — bitte selbst ansehen."
+        >
+          {toReview.map((r) => (
+            <ReminderItem key={r.id} reminder={r} />
+          ))}
+          {failedDocs.map((doc) => (
+            <Link
+              key={doc.id}
+              href={`/documents/${doc.id}`}
+              className="card flex items-center justify-between gap-3 transition-colors hover:border-navy/40"
+            >
+              <span className="truncate font-medium text-ink">{doc.file_name}</span>
+              <span className="inline-flex shrink-0 items-center rounded-full border border-accent/30 bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
+                Analyse fehlgeschlagen
+              </span>
+            </Link>
+          ))}
+        </TriageSection>
+      )}
+
+      {/* Später */}
+      {later.length > 0 && (
+        <TriageSection
+          label={`Später (${later.length})`}
+          tone="calm"
+          hint="Mehr als 7 Tage Zeit."
+        >
+          {later.slice(0, 4).map((r) => (
+            <ReminderItem key={r.id} reminder={r} />
+          ))}
+          {later.length > 4 && (
+            <Link href="/reminders" className="text-sm text-navy underline">
+              Alle {later.length} ansehen
+            </Link>
           )}
-        </section>
+        </TriageSection>
+      )}
+
+      {/* Keine offenen Fristen, aber Dokumente vorhanden */}
+      {!isEmpty && openReminders.length === 0 && failedDocs.length === 0 && (
+        <div className="card">
+          <p className="text-sm text-ink-soft">
+            Aktuell keine offenen Fristen. 🎉 Lade ein Dokument hoch und speichere
+            erkannte Fristen als Erinnerung, damit FristPilot dich rechtzeitig
+            benachrichtigt.
+          </p>
+        </div>
       )}
 
       {/* Zuletzt hochgeladene Dokumente */}
@@ -171,5 +214,38 @@ export default async function DashboardPage() {
         </section>
       )}
     </div>
+  );
+}
+
+// Eine Triage-Sektion mit farbiger Akzentlinie je nach Dringlichkeit.
+function TriageSection({
+  label,
+  hint,
+  tone,
+  children,
+}: {
+  label: string;
+  hint: string;
+  tone: "critical" | "warn" | "neutral" | "calm";
+  children: React.ReactNode;
+}) {
+  const dot = {
+    critical: "bg-accent",
+    warn: "bg-amber-500",
+    neutral: "bg-gray-400",
+    calm: "bg-blue-400",
+  }[tone];
+
+  return (
+    <section>
+      <div className="mb-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink">
+          <span className={`inline-block h-2.5 w-2.5 rounded-full ${dot}`} />
+          {label}
+        </h2>
+        <p className="mt-0.5 pl-4 text-xs text-ink-soft">{hint}</p>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
   );
 }
