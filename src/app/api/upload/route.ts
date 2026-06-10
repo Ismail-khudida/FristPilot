@@ -46,6 +46,8 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  // Opt-in: Original nach der Analyse behalten (Standard: löschen).
+  const keepOriginal = formData.get("keep_original") === "true";
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
       { error: "Die Datei ist zu groß (max. 10 MB)." },
@@ -160,14 +162,15 @@ export async function POST(request: Request) {
     // Datenschutz-by-Default: Wir speichern nur das strukturierte Analyse-
     // Ergebnis. Der Originalinhalt (extracted_text) wird NICHT dauerhaft in der
     // DB abgelegt, und die hochgeladene Datei wird nach der Analyse sofort aus
-    // dem Storage gelöscht (file_url = null). So bleibt vom sensiblen Dokument
-    // selbst nichts Dauerhaftes liegen – nur die für die App nötige Auswertung.
+    // dem Storage gelöscht – außer der Nutzer hat beim Upload ausdrücklich
+    // "Original behalten" gewählt (Archiv-Funktion, Opt-in).
     const { error: updateError } = await supabase
       .from("documents")
       .update({
-        file_url: null,
+        file_url: keepOriginal ? storagePath : null,
         extracted_text: null,
         analysis_json: analysis,
+        category: analysis.category ?? "sonstiges",
         status: "done",
         analysis_error: null,
       })
@@ -186,8 +189,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Originaldatei nach erfolgreicher Analyse entfernen (Privacy by Default).
-    await cleanupStorage();
+    // Originaldatei nach erfolgreicher Analyse entfernen (Privacy by Default),
+    // sofern der Nutzer sie nicht ausdrücklich behalten möchte.
+    if (!keepOriginal) await cleanupStorage();
 
     await finalizeQuota(supabase, consumed.usageId, documentId, "completed");
     return NextResponse.json({ documentId });

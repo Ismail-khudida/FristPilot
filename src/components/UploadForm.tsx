@@ -29,6 +29,7 @@ export function UploadForm() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [keepOriginal, setKeepOriginal] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +46,7 @@ export function UploadForm() {
     try {
       const body = new FormData();
       body.append("file", file);
+      body.append("keep_original", keepOriginal ? "true" : "false");
 
       setProgress(40);
       const res = await fetch("/api/upload", { method: "POST", body });
@@ -139,6 +141,27 @@ export function UploadForm() {
           </div>
         )}
       </div>
+
+      {/* Aufbewahrung: Standard ist Löschen nach Analyse (Privacy by Default) */}
+      <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+        <input
+          type="checkbox"
+          checked={keepOriginal}
+          disabled={busy}
+          onChange={(e) => setKeepOriginal(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#1e293b]"
+        />
+        <span className="text-sm">
+          <span className="font-medium text-ink">
+            Originaldokument im Archiv behalten
+          </span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">
+            Standard: Das Original wird nach der Analyse automatisch gelöscht,
+            nur das Ergebnis bleibt. Aktiviere dies, wenn du die Datei später
+            wieder ansehen möchtest.
+          </span>
+        </span>
+      </label>
 
       {/* Progress Bar */}
       {busy && (

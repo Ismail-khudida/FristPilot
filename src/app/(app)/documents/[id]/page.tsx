@@ -9,7 +9,12 @@ import { DeleteDocumentButton } from "@/components/DeleteDocumentButton";
 import { ProcessingPoller } from "@/components/ProcessingPoller";
 import { AnalysisFeedback } from "@/components/AnalysisFeedback";
 import { formatDate, formatDateTime, daysUntil } from "@/lib/format";
-import { DEADLINE_TYPE_LABELS } from "@/lib/analysis-schema";
+import {
+  DEADLINE_TYPE_LABELS,
+  DOC_CATEGORY_LABELS,
+  COST_INTERVAL_LABELS,
+  type DocCategory,
+} from "@/lib/analysis-schema";
 import type { DocumentRow } from "@/lib/types";
 
 function ConfidenceLabel({ value }: { value: number | null | undefined }) {
@@ -68,6 +73,21 @@ export default async function DocumentPage({
   const doc = data as DocumentRow;
   const analysis = doc.analysis_json;
 
+  // Falls das Original (Opt-in) behalten wurde: kurzlebigen Anzeige-Link holen.
+  let originalUrl: string | null = null;
+  if (doc.file_url) {
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "documents";
+    const { data: signed } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(doc.file_url, 600);
+    originalUrl = signed?.signedUrl ?? null;
+  }
+
+  const categoryLabel =
+    analysis?.category && analysis.category in DOC_CATEGORY_LABELS
+      ? DOC_CATEGORY_LABELS[analysis.category as DocCategory]
+      : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -110,6 +130,11 @@ export default async function DocumentPage({
                 <span className="inline-flex items-center rounded-full bg-navy/10 px-3 py-1 text-xs font-medium text-navy">
                   {analysis.document_type}
                 </span>
+                {categoryLabel && categoryLabel !== analysis.document_type && (
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-surface-muted px-3 py-1 text-xs font-medium text-ink-soft">
+                    {categoryLabel}
+                  </span>
+                )}
                 <RiskBadge risk={analysis.risk_level} />
               </div>
               <ConfidenceLabel value={analysis.confidence} />
@@ -128,7 +153,93 @@ export default async function DocumentPage({
                 {analysis.summary_simple || "Keine Zusammenfassung verfügbar."}
               </p>
             </div>
+
+            {originalUrl && (
+              <p className="text-sm">
+                <a
+                  href={originalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-navy underline"
+                >
+                  Originaldokument ansehen
+                </a>{" "}
+                <span className="text-xs text-ink-soft">
+                  (Link 10 Minuten gültig)
+                </span>
+              </p>
+            )}
           </div>
+
+          {/* Erkannter Vertrag */}
+          {analysis.contract && (
+            <div className="card space-y-3 border-l-4 border-l-navy">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-ink">
+                  📑 Laufender Vertrag erkannt
+                </h2>
+                {analysis.contract.auto_renewal && (
+                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                    ⚠️ Verlängert sich automatisch
+                  </span>
+                )}
+              </div>
+              <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                {(analysis.contract.provider || analysis.contract.contract_name) && (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                      Vertrag
+                    </dt>
+                    <dd className="text-ink">
+                      {[analysis.contract.provider, analysis.contract.contract_name]
+                        .filter(Boolean)
+                        .join(" – ")}
+                    </dd>
+                  </div>
+                )}
+                {analysis.contract.cost_amount != null && (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                      Kosten
+                    </dt>
+                    <dd className="text-ink">
+                      {new Intl.NumberFormat("de-DE", {
+                        style: "currency",
+                        currency: "EUR",
+                      }).format(analysis.contract.cost_amount)}{" "}
+                      {analysis.contract.cost_interval !== "unbekannt" &&
+                        COST_INTERVAL_LABELS[analysis.contract.cost_interval]}
+                    </dd>
+                  </div>
+                )}
+                {analysis.contract.end_date && (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                      Laufzeit bis
+                    </dt>
+                    <dd className="text-ink">{formatDate(analysis.contract.end_date)}</dd>
+                  </div>
+                )}
+                {analysis.contract.cancel_deadline && (
+                  <div>
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                      Kündbar bis
+                    </dt>
+                    <dd className="font-medium text-ink">
+                      {formatDate(analysis.contract.cancel_deadline)}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <p className="text-xs text-ink-soft">
+                Alle Verträge findest du gesammelt unter{" "}
+                <Link href="/contracts" className="text-navy underline">
+                  Verträge & Versicherungen
+                </Link>
+                .
+              </p>
+            </div>
+          )}
 
           {/* Mögliche Fristen */}
           <section>

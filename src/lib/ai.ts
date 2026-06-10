@@ -38,8 +38,18 @@ Analysiere das Dokument und gib AUSSCHLIESSLICH ein JSON-Objekt zurück – kein
 Das JSON-Objekt hat exakt diese Struktur:
 {
   "document_type": "Versicherung | Behörde | Vertrag | Rechnung | Sonstiges",
+  "category": "behoerde | versicherung | gesundheit | vertrag | rechnung | mahnung | finanzen | wohnen | arbeit | familie | sonstiges",
   "sender": "Name des Absenders (oder 'Unbekannt')",
   "summary_simple": "Einfache, beruhigende Erklärung des Dokuments in 2-4 Sätzen, in klarer Alltagssprache, ohne Fachbegriffe",
+  "contract": {
+    "provider": "Anbieter/Gesellschaft (z. B. 'Allianz', 'Vodafone')",
+    "contract_name": "Kurzname des Vertrags (z. B. 'Kfz-Haftpflicht', 'DSL-Tarif')",
+    "cost_amount": 0.0,
+    "cost_interval": "monatlich | vierteljaehrlich | halbjaehrlich | jaehrlich | einmalig | unbekannt",
+    "end_date": "YYYY-MM-DD oder null",
+    "cancel_deadline": "YYYY-MM-DD oder null (letzter Kündigungstermin)",
+    "auto_renewal": false
+  },
   "deadlines": [
     {
       "date": "YYYY-MM-DD oder null, falls kein konkretes Datum erkennbar",
@@ -59,6 +69,8 @@ Das JSON-Objekt hat exakt diese Struktur:
 
 Regeln:
 - Antworte auf Deutsch.
+- "category": Ordne das Dokument genau einem Lebensbereich zu. mahnung nur bei echten Mahnungen/Zahlungserinnerungen; gesundheit für Arzt/Krankenkasse/Befunde; wohnen für Miete/Nebenkosten/Strom/Gas; finanzen für Bank/Steuer/Finanzamt; familie für Kita/Schule/Unterhalt. Im Zweifel "sonstiges".
+- "contract": NUR ausfüllen, wenn das Dokument ein laufendes Vertragsverhältnis beschreibt (Versicherungspolice, Abo, Miet-/Mobilfunk-/Energievertrag o. ä.) – sonst null. Beträge als Zahl (z. B. 49.90), nicht als Text. Felder, die nicht erkennbar sind, leer/null lassen – nichts erfinden.
 - Erfinde keine Fristen. Wenn keine Frist erkennbar ist, gib ein leeres Array zurück.
 - "evidence_text": Zitiere möglichst wörtlich die Stelle, die zur Frist führt, damit der Nutzer die Aussage nachvollziehen kann. Lass das Feld leer, wenn es keine eindeutige Stelle gibt.
 - "deadline_type": Ordne jede Frist einem Typ zu. zahlungsfrist = Rechnung/Mahnung zu zahlen; kuendigungsfrist = letzter Termin zum Kündigen; widerspruchsfrist = Frist für Widerspruch/Einspruch (z. B. Behörde, Bescheid); nachreichfrist = Unterlagen einreichen/nachreichen; termin = fester Termin (z. B. Anhörung); vertragsverlaengerung = automatische Verlängerung droht; sonstige = nichts davon passt. Im Zweifel "sonstige".

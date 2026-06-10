@@ -30,6 +30,55 @@ export const DEADLINE_TYPE_LABELS: Record<DeadlineType, string> = {
   sonstige: "Frist",
 };
 
+// Lebensbereiche für das Dokumentenarchiv. "sonstiges" als Fallback.
+export const DOC_CATEGORIES = [
+  "behoerde",
+  "versicherung",
+  "gesundheit",
+  "vertrag",
+  "rechnung",
+  "mahnung",
+  "finanzen",
+  "wohnen",
+  "arbeit",
+  "familie",
+  "sonstiges",
+] as const;
+export type DocCategory = (typeof DOC_CATEGORIES)[number];
+
+export const DOC_CATEGORY_LABELS: Record<DocCategory, string> = {
+  behoerde: "Behörde",
+  versicherung: "Versicherung",
+  gesundheit: "Gesundheit",
+  vertrag: "Vertrag",
+  rechnung: "Rechnung",
+  mahnung: "Mahnung",
+  finanzen: "Finanzen",
+  wohnen: "Wohnen",
+  arbeit: "Arbeit",
+  familie: "Familie",
+  sonstiges: "Sonstiges",
+};
+
+export const COST_INTERVALS = [
+  "monatlich",
+  "vierteljaehrlich",
+  "halbjaehrlich",
+  "jaehrlich",
+  "einmalig",
+  "unbekannt",
+] as const;
+export type CostInterval = (typeof COST_INTERVALS)[number];
+
+export const COST_INTERVAL_LABELS: Record<CostInterval, string> = {
+  monatlich: "monatlich",
+  vierteljaehrlich: "vierteljährlich",
+  halbjaehrlich: "halbjährlich",
+  jaehrlich: "jährlich",
+  einmalig: "einmalig",
+  unbekannt: "Intervall unbekannt",
+};
+
 // Leerer String oder fehlender Wert -> null.
 const nullableDate = z
   .preprocess(
@@ -72,6 +121,34 @@ export const DeadlineSchema = z.object({
 
 export type Deadline = z.infer<typeof DeadlineSchema>;
 
+// Betrag tolerant parsen (Komma als Dezimaltrenner, sonst null).
+const nullableAmount = z
+  .preprocess((v) => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number(v.replace(/\./g, "").replace(",", "."));
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  }, z.number().nullable())
+  .catch(null);
+
+// Vertrags-/Verpflichtungsdaten, falls das Dokument ein laufendes
+// Vertragsverhältnis beschreibt (Vertrag, Versicherung, Abo). Sonst null.
+export const ContractSchema = z.object({
+  provider: safeString("").catch(""),
+  contract_name: safeString("").catch(""),
+  cost_amount: nullableAmount,
+  cost_interval: z.enum(COST_INTERVALS).catch("unbekannt"),
+  end_date: nullableDate,
+  cancel_deadline: nullableDate,
+  auto_renewal: z
+    .preprocess((v) => v === true || v === "true", z.boolean())
+    .catch(false),
+});
+
+export type ContractInfo = z.infer<typeof ContractSchema>;
+
 const DEFAULT_DEADLINE: Deadline = {
   date: null,
   deadline_type: "sonstige",
@@ -84,8 +161,15 @@ const DEFAULT_DEADLINE: Deadline = {
 
 export const AnalysisSchema = z.object({
   document_type: safeString("Sonstiges").catch("Sonstiges"),
+  category: z.enum(DOC_CATEGORIES).catch("sonstiges"),
   sender: safeString("Unbekannt").catch("Unbekannt"),
   summary_simple: safeString("").catch(""),
+  contract: z
+    .preprocess(
+      (v) => (v && typeof v === "object" ? v : null),
+      ContractSchema.nullable(),
+    )
+    .catch(null),
   deadlines: z.preprocess(
     (v) => (Array.isArray(v) ? v : []),
     z.array(DeadlineSchema.catch(DEFAULT_DEADLINE)),
@@ -109,9 +193,11 @@ export type DocumentAnalysis = z.infer<typeof AnalysisSchema>;
 // Sicherer Standardwert, falls die KI-Antwort gar nicht verwertbar ist.
 export const FALLBACK_ANALYSIS: DocumentAnalysis = {
   document_type: "Sonstiges",
+  category: "sonstiges",
   sender: "Unbekannt",
   summary_simple:
     "Dieses Dokument konnte nicht automatisch ausgewertet werden. Bitte prüfe es selbst.",
+  contract: null,
   deadlines: [],
   recommended_actions: [],
   risk_level: "medium",

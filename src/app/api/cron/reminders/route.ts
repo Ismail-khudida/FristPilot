@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Versendet fällige Erinnerungen per E-Mail. Dieser Endpunkt ist KEIN
-// Nutzer-Endpunkt: er wird von einem Scheduler (Cloudflare Cron Trigger,
-// Supabase pg_cron oder ein externer Cron-Dienst) per HTTP aufgerufen und ist
-// durch ein geheimes Bearer-Token geschützt.
+// Versendet fällige Erinnerungen per E-Mail – mit eskalierenden Stufen.
+// Dieser Endpunkt ist KEIN Nutzer-Endpunkt: er wird von einem Scheduler
+// (Supabase pg_cron) per HTTP aufgerufen und ist durch ein geheimes
+// Bearer-Token geschützt.
+//
+// Eskalationsmodell: Jede Erinnerung wird mehrfach verschickt – 30, 14, 7 und
+// 1 Tag(e) vor Fälligkeit sowie am Tag selbst. `notified_stages` hält fest,
+// welche Stufen bereits raus sind, damit nichts doppelt verschickt wird.
+// Liegt eine Erinnerung beim ersten Lauf schon näher an der Frist, werden
+// übersprungene Stufen still als erledigt markiert (eine E-Mail, nicht vier).
 //
 // Warum hier ausnahmsweise der Service-Role-Key zum Einsatz kommt:
 // Der Versand läuft ohne Nutzer-Session und muss über mehrere Konten hinweg
@@ -14,9 +20,9 @@ import { createClient } from "@supabase/supabase-js";
 
 export const maxDuration = 60;
 
-// Vorlaufzeit: Erinnerungen, die innerhalb der nächsten N Tage fällig sind
-// (inkl. heute), werden einmalig verschickt.
-const LEAD_DAYS = 3;
+// Vorlaufstufen in Tagen, absteigend. 0 = am Tag der Fälligkeit (und danach,
+// einmalig für Überfälliges).
+const STAGES = [30, 14, 7, 1, 0] as const;
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -31,6 +37,13 @@ interface DueReminder {
   title: string;
   description: string | null;
   due_date: string | null;
+  notified_stages: unknown;
+}
+
+interface PendingNotification {
+  reminder: DueReminder;
+  daysLeft: number;
+  mergedStages: number[];
 }
 
 function escapeHtml(s: string): string {
@@ -52,12 +65,32 @@ function formatDateDe(date: string | null): string {
   });
 }
 
-function buildEmail(reminders: DueReminder[], appUrl: string): string {
-  const items = reminders
+// Tage bis zur Fälligkeit, rein über das Datum (due_date ist YYYY-MM-DD).
+function daysUntil(due: string, today: string): number {
+  const a = new Date(`${due}T00:00:00Z`).getTime();
+  const b = new Date(`${today}T00:00:00Z`).getTime();
+  return Math.round((a - b) / 86_400_000);
+}
+
+function urgencyLabel(daysLeft: number): string {
+  if (daysLeft < 0) return `⚠️ Überfällig seit ${Math.abs(daysLeft)} Tag(en)`;
+  if (daysLeft === 0) return "🚨 Heute fällig";
+  if (daysLeft === 1) return "⏰ Morgen fällig";
+  return `🗓️ In ${daysLeft} Tagen fällig`;
+}
+
+function parseStages(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((n): n is number => typeof n === "number");
+}
+
+function buildEmail(items: PendingNotification[], appUrl: string): string {
+  const rows = items
     .map(
-      (r) => `
+      ({ reminder: r, daysLeft }) => `
         <tr>
           <td style="padding:12px 0;border-bottom:1px solid #eee;">
+            <span style="font-size:13px;font-weight:600;color:${daysLeft <= 1 ? "#b91c1c" : daysLeft <= 7 ? "#b45309" : "#1d4ed8"};">${urgencyLabel(daysLeft)}</span><br />
             <strong style="color:#0f172a;">${escapeHtml(r.title)}</strong><br />
             <span style="color:#64748b;font-size:14px;">Fällig: ${formatDateDe(r.due_date)}</span>
             ${r.description ? `<br /><span style="color:#475569;font-size:14px;">${escapeHtml(r.description)}</span>` : ""}
@@ -70,12 +103,12 @@ function buildEmail(reminders: DueReminder[], appUrl: string): string {
     <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;">
       <h1 style="font-size:20px;color:#0f172a;margin:0 0 4px;">FristPilot – anstehende Fristen</h1>
       <p style="color:#64748b;font-size:14px;margin:0 0 20px;">
-        Diese Fristen werden bald fällig. Bitte prüfe, ob du handeln musst.
+        Diese Fristen brauchen deine Aufmerksamkeit. Bitte prüfe, ob du handeln musst.
       </p>
-      <table style="width:100%;border-collapse:collapse;">${items}</table>
+      <table style="width:100%;border-collapse:collapse;">${rows}</table>
       <div style="margin-top:24px;">
-        <a href="${appUrl}/reminders" style="display:inline-block;background:#1e293b;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px;">
-          Alle Erinnerungen ansehen
+        <a href="${appUrl}/dashboard" style="display:inline-block;background:#1e293b;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px;">
+          Zum Überblick
         </a>
       </div>
       <p style="color:#94a3b8;font-size:12px;margin-top:24px;">
@@ -89,7 +122,8 @@ function buildEmail(reminders: DueReminder[], appUrl: string): string {
 async function sendEmail(
   to: string,
   html: string,
-  reminderCount: number,
+  mostUrgent: PendingNotification,
+  count: number,
 ): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.REMINDER_FROM_EMAIL?.trim();
@@ -97,10 +131,13 @@ async function sendEmail(
     console.error("RESEND_API_KEY oder REMINDER_FROM_EMAIL fehlt.");
     return false;
   }
-  const subject =
-    reminderCount === 1
-      ? "Eine Frist wird bald fällig"
-      : `${reminderCount} Fristen werden bald fällig`;
+  const lead =
+    mostUrgent.daysLeft <= 0
+      ? "Frist heute fällig oder überfällig"
+      : mostUrgent.daysLeft === 1
+        ? "Frist morgen fällig"
+        : `Frist in ${mostUrgent.daysLeft} Tagen`;
+  const subject = count === 1 ? lead : `${lead} – und ${count - 1} weitere`;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -135,19 +172,22 @@ export async function POST(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // Stichtag: heute + LEAD_DAYS (in Europe/Berlin gedacht – due_date ist ein
-  // reines Datum ohne Zeitzone, daher genügt der Datumsvergleich).
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() + LEAD_DAYS);
-  const cutoffDate = cutoff.toISOString().slice(0, 10);
+  // Heutiges Datum in Europe/Berlin (due_date ist ein reines Datum).
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+  }).format(new Date());
+
+  // Kandidaten: alle offenen, datierten Erinnerungen bis zur größten Vorlaufstufe.
+  const horizon = new Date(`${today}T00:00:00Z`);
+  horizon.setUTCDate(horizon.getUTCDate() + STAGES[0]);
+  const horizonDate = horizon.toISOString().slice(0, 10);
 
   const { data, error } = await admin
     .from("reminders")
-    .select("id, user_id, title, description, due_date")
+    .select("id, user_id, title, description, due_date, notified_stages")
     .eq("status", "open")
-    .is("notified_at", null)
     .not("due_date", "is", null)
-    .lte("due_date", cutoffDate)
+    .lte("due_date", horizonDate)
     .order("due_date", { ascending: true });
 
   if (error) {
@@ -155,17 +195,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "DB-Fehler" }, { status: 500 });
   }
 
-  const due = (data ?? []) as DueReminder[];
-  if (due.length === 0) {
-    return NextResponse.json({ sent: 0, reminders: 0 });
+  // Pro Erinnerung prüfen, ob eine neue Eskalationsstufe erreicht wurde.
+  const pendingByUser = new Map<string, PendingNotification[]>();
+  for (const r of (data ?? []) as DueReminder[]) {
+    if (!r.due_date) continue;
+    const daysLeft = daysUntil(r.due_date, today);
+    const already = parseStages(r.notified_stages);
+    // Alle Stufen, deren Vorlauf erreicht ist (bei daysLeft=3: 30, 14, 7).
+    const reached = STAGES.filter((s) => daysLeft <= s);
+    const fresh = reached.filter((s) => !already.includes(s));
+    if (fresh.length === 0) continue;
+
+    const merged = [...new Set([...already, ...reached])].sort((a, b) => b - a);
+    const list = pendingByUser.get(r.user_id) ?? [];
+    list.push({ reminder: r, daysLeft, mergedStages: merged });
+    pendingByUser.set(r.user_id, list);
   }
 
-  // Nach Nutzer gruppieren -> eine E-Mail pro Person.
-  const byUser = new Map<string, DueReminder[]>();
-  for (const r of due) {
-    const list = byUser.get(r.user_id) ?? [];
-    list.push(r);
-    byUser.set(r.user_id, list);
+  if (pendingByUser.size === 0) {
+    return NextResponse.json({ sent: 0, reminders: 0 });
   }
 
   const appUrl =
@@ -173,9 +221,9 @@ export async function POST(request: Request) {
     "https://fristpilot.ismailkhudida.workers.dev";
 
   let usersSent = 0;
-  const notifiedIds: string[] = [];
+  let remindersSent = 0;
 
-  for (const [userId, reminders] of byUser) {
+  for (const [userId, items] of pendingByUser) {
     const { data: userData, error: userErr } =
       await admin.auth.admin.getUserById(userId);
     const email = userData?.user?.email;
@@ -184,28 +232,34 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const html = buildEmail(reminders, appUrl);
-    const ok = await sendEmail(email, html, reminders.length);
-    if (ok) {
-      usersSent += 1;
-      notifiedIds.push(...reminders.map((r) => r.id));
+    // Dringendste zuerst (kleinste Resttage).
+    items.sort((a, b) => a.daysLeft - b.daysLeft);
+    const ok = await sendEmail(
+      email,
+      buildEmail(items, appUrl),
+      items[0],
+      items.length,
+    );
+    if (!ok) continue;
+
+    usersSent += 1;
+    // Stufen erst nach erfolgreichem Versand markieren, damit ein Fehlschlag
+    // beim nächsten Lauf erneut versucht wird.
+    for (const item of items) {
+      const { error: updateError } = await admin
+        .from("reminders")
+        .update({
+          notified_stages: item.mergedStages,
+          notified_at: new Date().toISOString(),
+        })
+        .eq("id", item.reminder.id);
+      if (updateError) {
+        console.error("notified_stages konnte nicht gesetzt werden:", updateError);
+      } else {
+        remindersSent += 1;
+      }
     }
   }
 
-  // Nur erfolgreich versendete Erinnerungen als benachrichtigt markieren,
-  // damit ein fehlgeschlagener Versand beim nächsten Lauf erneut versucht wird.
-  if (notifiedIds.length > 0) {
-    const { error: updateError } = await admin
-      .from("reminders")
-      .update({ notified_at: new Date().toISOString() })
-      .in("id", notifiedIds);
-    if (updateError) {
-      console.error("notified_at konnte nicht gesetzt werden:", updateError);
-    }
-  }
-
-  return NextResponse.json({
-    sent: usersSent,
-    reminders: notifiedIds.length,
-  });
+  return NextResponse.json({ sent: usersSent, reminders: remindersSent });
 }
