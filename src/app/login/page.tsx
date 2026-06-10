@@ -19,9 +19,11 @@ export default async function LoginPage({
   const notice =
     reset === "ok"
       ? "Dein Passwort wurde geändert. Bitte melde dich jetzt an."
-      : error === "auth"
-        ? "Der Link ist ungültig oder abgelaufen. Bitte versuche es erneut."
-        : undefined;
+      : error === "link"
+        ? "Der Bestätigungslink ist abgelaufen oder wurde bereits verwendet. Melde dich an oder fordere einen neuen Link an."
+        : error === "auth"
+          ? "Der Link ist ungültig oder abgelaufen. Bitte versuche es erneut."
+          : undefined;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
