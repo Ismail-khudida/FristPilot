@@ -127,6 +127,23 @@ export default async function DocumentsPage({
         ))}
       </div>
 
+      {/* Vertragsübersicht als vertiefte Ansicht dieser Kategorien */}
+      {(activeCat === "vertrag" || activeCat === "versicherung") && (
+        <Link
+          href="/contracts"
+          className="flex items-center justify-between gap-3 rounded-xl border border-navy/20 bg-navy/5 px-4 py-3 transition-colors hover:border-navy/40"
+        >
+          <span className="text-sm">
+            <span className="font-medium text-ink">📑 Vertragsübersicht öffnen</span>
+            <span className="block text-xs text-ink-soft">
+              Kosten, Laufzeiten, Kündigungsfristen und Auto-Verlängerungen auf
+              einen Blick.
+            </span>
+          </span>
+          <span className="text-navy">→</span>
+        </Link>
+      )}
+
       {/* Liste */}
       {documents.length === 0 ? (
         <div className="card">

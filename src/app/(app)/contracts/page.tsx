@@ -75,7 +75,10 @@ export default async function ContractsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">
+        <Link href="/documents" className="text-sm text-navy underline">
+          ← Zurück zu Dokumenten
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold text-ink">
           Verträge & Versicherungen
         </h1>
         <p className="mt-1 text-sm text-ink-soft">

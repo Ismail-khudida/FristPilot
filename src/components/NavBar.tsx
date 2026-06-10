@@ -7,7 +7,6 @@ import { logout } from "@/app/auth/actions";
 const LINKS = [
   { href: "/dashboard", label: "Überblick" },
   { href: "/documents", label: "Dokumente" },
-  { href: "/contracts", label: "Verträge" },
   { href: "/reminders", label: "Erinnerungen" },
   { href: "/upload", label: "Hochladen" },
 ];
