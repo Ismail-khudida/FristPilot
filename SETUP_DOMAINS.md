@@ -1,100 +1,93 @@
-# Eigene Domains: fristpilot.com & fristpilot.app
+# Eigene Domains: fristpilot.app (Haupt) & fristpilot.com
 
-Die App ist im Code bereits **multi-domain-fähig** vorbereitet:
+Beide Domains sind bereits **in Cloudflare angelegt** (Free-Plan, Status
+„pending"). Der Code ist multi-domain-fähig; `fristpilot.app` ist die
+**kanonische Hauptdomain** (`NEXT_PUBLIC_APP_URL`), `fristpilot.com` läuft mit.
 
-- `APP_ORIGIN` (in `wrangler.toml`) listet alle erlaubten Domains – der
-  CSRF-/Upload-Schutz akzeptiert sie alle gleichzeitig.
-- Bestätigungs-/Reset-E-Mails zeigen automatisch auf die Domain, auf der der
-  Nutzer gerade ist (workers.dev **oder** fristpilot.com/.app).
-- `NEXT_PUBLIC_APP_URL` (kanonische URL für Erinnerungs-Mails) steht auf
-  `https://fristpilot.com`.
-
-Damit die Domains **live** funktionieren, musst du folgende Einstellungen
-außerhalb des Codes setzen. Code-Änderungen sind dafür **nicht** nötig.
+Es fehlen nur noch die Schritte außerhalb des Codes (DNS/Supabase/Resend).
 
 ---
 
-## 1. Cloudflare – Domains mit dem Worker verbinden
+## 1. name.com – Nameserver auf Cloudflare umstellen  ← DU
 
-1. Sorge dafür, dass `fristpilot.com` und `fristpilot.app` als **Zonen** in
-   deinem Cloudflare-Account liegen (Cloudflare-Nameserver beim Registrar
-   eintragen, falls die Domains woanders registriert sind). Bei Registrierung
-   über Cloudflare Registrar sind sie schon drin.
-2. **Workers & Pages → `fristpilot` → Settings → Domains & Routes →
-   Add → Custom Domain**, und füge nacheinander hinzu:
-   - `fristpilot.com`
-   - `www.fristpilot.com`
-   - `fristpilot.app`
-3. Cloudflare legt DNS-Einträge (CNAME/Proxy) und das TLS-Zertifikat
-   automatisch an. Nach ein paar Minuten ist die App unter den Domains
-   erreichbar.
+Damit Cloudflare die Domains aktiviert, bei **name.com** für **beide** Domains
+die Nameserver ersetzen:
 
-> Die `workers.dev`-URL bleibt parallel erreichbar und funktioniert weiter.
+1. Bei https://www.name.com einloggen → Domain auswählen → **Nameservers**.
+2. Die vier name.com-Nameserver **entfernen**
+   (`ns1ljp.name.com`, `ns2dqx.name.com`, `ns3cpr.name.com`, `ns4kmw.name.com`).
+3. Diese **zwei Cloudflare-Nameserver** eintragen:
+   ```
+   vin.ns.cloudflare.com
+   zoe.ns.cloudflare.com
+   ```
+4. Speichern. **Für fristpilot.app UND fristpilot.com** machen.
 
-### Optional: www → root weiterleiten
-Wenn `www.fristpilot.com` auf `fristpilot.com` zeigen soll, dafür in Cloudflare
-eine **Redirect Rule** (Bulk Redirect oder Rule: `www.fristpilot.com/*` →
-`https://fristpilot.com/$1`, 301) anlegen.
+Cloudflare aktiviert die Domains automatisch (meist Minuten bis wenige Stunden)
+und schickt dir eine Bestätigungs-Mail. Solange läuft die App weiter über
+workers.dev.
+
+> Sag mir Bescheid, wenn Cloudflare „Active" meldet – dann mache ich Schritt 2 + 3.
 
 ---
 
-## 2. Supabase – Auth-URLs ergänzen
+## 2. Cloudflare – Custom Domain am Worker  ← ich (nach Aktivierung)
 
-**Authentication → URL Configuration**
-(https://supabase.com/dashboard/project/wudgeccenmwthkurqddp/auth/url-configuration)
+Workers & Pages → `fristpilot` → Settings → Domains & Routes → **Add Custom
+Domain**:
+- `fristpilot.app`
+- `www.fristpilot.app`
+- `fristpilot.com`
+- `www.fristpilot.com`
 
-- **Site URL:** `https://fristpilot.com`
+Cloudflare ersetzt dabei die geparkten A-Records automatisch und stellt TLS
+bereit. (Die importierten name.com-Parking-Records `91.195.240.94` werden dabei
+überschrieben.)
+
+---
+
+## 3. Supabase – Auth-URLs  ← ich (nach Aktivierung)
+
+Authentication → URL Configuration:
+- **Site URL:** `https://fristpilot.app`
 - **Redirect URLs** (hinzufügen, vorhandene behalten):
   ```
+  https://fristpilot.app/**
+  https://www.fristpilot.app/**
   https://fristpilot.com/**
   https://www.fristpilot.com/**
-  https://fristpilot.app/**
   https://fristpilot.ismailkhudida.workers.dev/**
   ```
 
-Ohne diese Einträge schlägt die Registrierungs-Bestätigung auf der neuen Domain
-fehl (Supabase akzeptiert nur erlaubte Redirect-Ziele).
-
 ---
 
-## 3. Resend – Absender-Domain verifizieren (für Erinnerungs-Mails)
+## 4. Resend – Absender-Domain verifizieren  ← DU (+ ich für DNS)
 
-1. Resend → **Domains → Add Domain** → `fristpilot.com`.
-2. Die angezeigten **DNS-Einträge** (SPF, DKIM, ggf. DMARC) in Cloudflare DNS
-   eintragen. Verifizierung abwarten.
-3. Danach in `wrangler.toml` den Absender umstellen und neu deployen:
+1. Resend → Domains → Add Domain → `fristpilot.app`.
+2. Die angezeigten DNS-Einträge (SPF/DKIM/DMARC) nenne ich dir – ich trage sie
+   dann in Cloudflare DNS ein.
+3. Nach Verifizierung in `wrangler.toml` umstellen + deployen:
    ```toml
-   REMINDER_FROM_EMAIL = "FristPilot <noreply@fristpilot.com>"
+   REMINDER_FROM_EMAIL = "FristPilot <noreply@fristpilot.app>"
    ```
-   (Erst nach erfolgreicher Verifizierung – sonst lehnt Resend den Versand ab.)
 
 ---
 
-## 4. pg_cron – Erinnerungs-Aufruf (optional umstellen)
+## 5. pg_cron – Erinnerungs-Aufruf (optional umstellen)
 
-Der tägliche Aufruf funktioniert weiter über die workers.dev-URL. Wenn du ihn
-sauber auf die neue Domain umstellen willst, im Supabase SQL-Editor:
-
+Läuft weiter über workers.dev. Zum Umstellen im Supabase-SQL-Editor:
 ```sql
 select cron.unschedule('fristpilot-reminders');
-select cron.schedule(
-  'fristpilot-reminders', '0 7 * * *',
+select cron.schedule('fristpilot-reminders','0 7 * * *',
   $$ select net.http_post(
-       url := 'https://fristpilot.com/api/cron/reminders',
-       headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>')
-     ); $$
-);
+       url := 'https://fristpilot.app/api/cron/reminders',
+       headers := jsonb_build_object('Authorization','Bearer <CRON_SECRET>')); $$);
 ```
 
 ---
 
-## 5. Nach dem Umzug
-
-- Testen: Registrierung + Bestätigungslink auf `https://fristpilot.com`.
-- Testen: Dokument-Upload auf der neuen Domain (CSRF/Origin akzeptiert sie).
-- `wrangler.toml` ist bereits korrekt; ein erneuter Deploy ist nur nötig, wenn
-  du `REMINDER_FROM_EMAIL` umstellst.
-
-> **Impressum/Datenschutz** nennen keine konkrete Domain im Text – hier ist
-> nichts zu ändern. Die Datenschutz-Tabelle führt Cloudflare bereits als
-> Hosting-Anbieter.
+## Aktueller Stand
+- ✅ fristpilot.app + fristpilot.com in Cloudflare angelegt (Free, pending)
+- ✅ Code: Multi-Domain + `fristpilot.app` kanonisch (deployt)
+- ⏳ name.com-Nameserver-Umstellung (Schritt 1) – **dein Schritt**
+- ⏳ Custom Domain + Supabase + Resend – danach

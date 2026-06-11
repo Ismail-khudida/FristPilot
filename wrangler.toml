@@ -12,9 +12,9 @@ DAILY_GLOBAL_ANALYSIS_LIMIT = "200"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 # Erlaubte Origins (CSRF). Kommagetrennt – alle verbundenen Domains. Die App
 # funktioniert dadurch gleichzeitig auf workers.dev und den neuen Domains.
-APP_ORIGIN = "https://fristpilot.com,https://www.fristpilot.com,https://fristpilot.app,https://fristpilot.ismailkhudida.workers.dev"
-# Kanonische URL für Links in Erinnerungs-E-Mails (Server, ohne Request-Kontext).
-NEXT_PUBLIC_APP_URL = "https://fristpilot.com"
+APP_ORIGIN = "https://fristpilot.app,https://fristpilot.com,https://www.fristpilot.com,https://www.fristpilot.app,https://fristpilot.ismailkhudida.workers.dev"
+# Kanonische Hauptdomain für Links in Erinnerungs-E-Mails (Server, ohne Request-Kontext).
+NEXT_PUBLIC_APP_URL = "https://fristpilot.app"
 # Absender der Erinnerungs-Mails. Erst auf eine fristpilot.com-Adresse umstellen,
 # wenn die Domain in Resend verifiziert ist (siehe SETUP_DOMAINS.md).
 REMINDER_FROM_EMAIL = "FristPilot <onboarding@resend.dev>"
