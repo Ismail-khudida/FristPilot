@@ -73,15 +73,30 @@ export default async function DocumentPage({
   const doc = data as DocumentRow;
   const analysis = doc.analysis_json;
 
-  // Falls das Original (Opt-in) behalten wurde: kurzlebigen Anzeige-Link holen.
-  let originalUrl: string | null = null;
-  if (doc.file_url) {
-    const bucket = process.env.SUPABASE_STORAGE_BUCKET || "documents";
+  // Falls die Originalseiten (Opt-in) behalten wurden: kurzlebige Anzeige-Links
+  // für ALLE Seiten holen, in Reihenfolge. Backward-compatible: ältere
+  // Dokumente haben nur file_url (eine Seite) und kein file_urls.
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || "documents";
+  const storedPaths: string[] =
+    doc.file_urls && doc.file_urls.length > 0
+      ? doc.file_urls
+      : doc.file_url
+        ? [doc.file_url]
+        : [];
+  const pages: { url: string; isPdf: boolean }[] = [];
+  for (const path of storedPaths) {
     const { data: signed } = await supabase.storage
       .from(bucket)
-      .createSignedUrl(doc.file_url, 600);
-    originalUrl = signed?.signedUrl ?? null;
+      .createSignedUrl(path, 600);
+    if (signed?.signedUrl) {
+      pages.push({
+        url: signed.signedUrl,
+        isPdf: path.toLowerCase().endsWith(".pdf"),
+      });
+    }
   }
+  const imagePages = pages.filter((p) => !p.isPdf);
+  const pdfPage = pages.find((p) => p.isPdf);
 
   const categoryLabel =
     analysis?.category && analysis.category in DOC_CATEGORY_LABELS
@@ -154,19 +169,23 @@ export default async function DocumentPage({
               </p>
             </div>
 
-            {originalUrl && (
+            {doc.page_count > 1 && (
+              <p className="text-xs text-ink-soft">
+                Dieses Dokument hat {doc.page_count} Seiten.
+              </p>
+            )}
+
+            {pdfPage && (
               <p className="text-sm">
                 <a
-                  href={originalUrl}
+                  href={pdfPage.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-navy underline"
                 >
-                  Originaldokument ansehen
+                  Original-PDF ansehen
                 </a>{" "}
-                <span className="text-xs text-ink-soft">
-                  (Link 10 Minuten gültig)
-                </span>
+                <span className="text-xs text-ink-soft">(Link 10 Minuten gültig)</span>
               </p>
             )}
           </div>
@@ -350,6 +369,35 @@ export default async function DocumentPage({
             <AnalysisFeedback documentId={doc.id} />
           </div>
         </>
+      )}
+
+      {/* Originalseiten (nur wenn "Original behalten" gewählt und Bilder).
+          Vertikale Galerie in Reihenfolge, jede Seite klar beschriftet. */}
+      {imagePages.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-ink">
+            {imagePages.length === 1 ? "Originaldokument" : "Alle Seiten"}
+          </h2>
+          <div className="space-y-4">
+            {imagePages.map((page, i) => (
+              <figure key={i} className="card space-y-2">
+                <figcaption className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Seite {i + 1}
+                  {imagePages.length > 1 ? ` von ${imagePages.length}` : ""}
+                </figcaption>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={page.url}
+                  alt={`Seite ${i + 1} von ${doc.file_name}`}
+                  className="w-full rounded-lg border border-gray-200"
+                />
+              </figure>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-ink-soft">
+            Anzeige-Links sind aus Sicherheitsgründen nur 10 Minuten gültig.
+          </p>
+        </section>
       )}
 
       <PrivacyNotice />

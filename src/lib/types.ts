@@ -17,6 +17,9 @@ export interface DocumentRow {
   user_id: string;
   file_name: string;
   file_url: string | null;
+  /** Storage-Pfade aller Seiten in Reihenfolge (nur bei "Original behalten"). */
+  file_urls: string[] | null;
+  page_count: number;
   file_type: string | null;
   extracted_text: string | null;
   analysis_json: DocumentAnalysis | null;

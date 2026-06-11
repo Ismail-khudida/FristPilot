@@ -33,6 +33,8 @@ Wichtige Grundhaltung:
 - Du gibst keine Rechtsberatung und suggerierst keine absolute Sicherheit.
 - Formuliere vorsichtig ("wahrscheinlich", "möglicherweise") statt absolut.
 
+Ein Dokument kann aus MEHREREN Seiten bestehen (mehrere Bilder oder ein mehrseitiges PDF). Betrachte immer ALLE Seiten gemeinsam als EIN zusammenhängendes Dokument. Fristen, Beträge und Zusammenhänge können sich über mehrere Seiten verteilen – berücksichtige den gesamten Inhalt, nicht nur die erste Seite.
+
 Analysiere das Dokument und gib AUSSCHLIESSLICH ein JSON-Objekt zurück – kein einleitender Text, keine Erklärungen, keine Markdown-Codeblöcke.
 
 Das JSON-Objekt hat exakt diese Struktur:
@@ -79,7 +81,7 @@ Regeln:
 - "risk_level": high = wichtige mögliche Frist mit potenziellen rechtlichen/finanziellen Folgen, medium = relevant aber unkritisch, low = informativ.
 - Sei vorsichtig: Im Zweifel weise auf Unsicherheit hin (niedrige confidence), statt zu raten.`;
 
-interface AnalyzeInput {
+export interface AnalyzeInput {
   /** Rohdaten der Datei. */
   data: Buffer;
   mimeType: string;
@@ -109,20 +111,48 @@ function buildContentBlock(
   };
 }
 
-// Schickt das Dokument direkt an Claude. PDFs werden als Dokument-Block,
-// Bilder als Bild-Block übergeben – Claude übernimmt Texterkennung (OCR)
-// und Analyse in einem Schritt. Das Ergebnis wird per Zod-Schema validiert.
-export async function analyzeDocument({
-  data,
-  mimeType,
-}: AnalyzeInput): Promise<DocumentAnalysis> {
+// Baut die Content-Blöcke für ALLE Seiten in Reihenfolge. Bei mehreren Bildern
+// wird jeder Seite ein Text-Label vorangestellt, damit das Modell die
+// Reihenfolge und Seitenzuordnung (page_number) zuverlässig erkennt. Ein
+// mehrseitiges PDF bleibt EIN Dokument-Block – Claude liest dessen Seiten
+// selbst.
+function buildPageContent(pages: AnalyzeInput[]): Anthropic.ContentBlockParam[] {
+  const multiple = pages.length > 1;
+  const blocks: Anthropic.ContentBlockParam[] = [];
+  pages.forEach((page, i) => {
+    if (multiple) {
+      blocks.push({ type: "text", text: `— Seite ${i + 1} von ${pages.length} —` });
+    }
+    blocks.push(buildContentBlock(page.data.toString("base64"), page.mimeType));
+  });
+  blocks.push({
+    type: "text",
+    text: multiple
+      ? "Oben siehst du alle Seiten dieses einen Dokuments in Reihenfolge. Analysiere sie GEMEINSAM und gib nur das beschriebene JSON-Objekt zurück."
+      : "Analysiere dieses Dokument und gib nur das beschriebene JSON-Objekt zurück.",
+  });
+  return blocks;
+}
+
+// Schickt das Dokument (eine oder mehrere Seiten) direkt an Claude. PDFs werden
+// als Dokument-Block, Bilder als Bild-Block übergeben – Claude übernimmt
+// Texterkennung (OCR) und Analyse in einem Schritt. Das Ergebnis wird per
+// Zod-Schema validiert. Akzeptiert sowohl eine einzelne Seite als auch ein
+// Array von Seiten (mehrere Bilder).
+export async function analyzeDocument(
+  input: AnalyzeInput | AnalyzeInput[],
+): Promise<DocumentAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     throw new AnalysisConfigError("ANTHROPIC_API_KEY ist nicht gesetzt.");
   }
 
+  const pages = Array.isArray(input) ? input : [input];
+  if (pages.length === 0) {
+    throw new AnalysisConfigError("Keine Seiten zur Analyse übergeben.");
+  }
+
   const client = new Anthropic({ apiKey });
-  const base64 = data.toString("base64");
 
   const response = await client.messages.create({
     model: resolveModel(),
@@ -131,13 +161,7 @@ export async function analyzeDocument({
     messages: [
       {
         role: "user",
-        content: [
-          buildContentBlock(base64, mimeType),
-          {
-            type: "text",
-            text: "Analysiere dieses Dokument und gib nur das beschriebene JSON-Objekt zurück.",
-          },
-        ],
+        content: buildPageContent(pages),
       },
     ],
   });

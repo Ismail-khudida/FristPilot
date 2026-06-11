@@ -4,39 +4,86 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const ACCEPT = "application/pdf,image/jpeg,image/png";
+const MAX_PAGES = 12;
 
 type UploadStep = "idle" | "uploading" | "analyzing" | "done";
 
 const STEP_LABELS: Record<UploadStep, string> = {
   idle: "",
-  uploading: "Datei wird hochgeladen…",
-  analyzing: "KI analysiert Dokument…",
+  uploading: "Seiten werden hochgeladen…",
+  analyzing: "KI analysiert das Dokument…",
   done: "Analyse abgeschlossen!",
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  "rate_limit": "Du hast heute dein tägliches Limit erreicht. Bitte versuche es morgen erneut.",
-  "file_too_large": "Die Datei ist zu groß. Bitte lade eine Datei unter 10 MB hoch.",
-  "unsupported_type": "Dieses Dateiformat wird nicht unterstützt. Bitte PDF, JPG oder PNG hochladen.",
-  "not_authenticated": "Du bist nicht mehr angemeldet. Bitte lade die Seite neu.",
+  rate_limit: "Du hast heute dein tägliches Limit erreicht. Bitte versuche es morgen erneut.",
+  file_too_large: "Die Datei ist zu groß. Bitte lade Dateien unter 10 MB hoch.",
+  unsupported_type: "Dieses Dateiformat wird nicht unterstützt. Bitte PDF, JPG oder PNG hochladen.",
+  not_authenticated: "Du bist nicht mehr angemeldet. Bitte lade die Seite neu.",
 };
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
 
 export function UploadForm() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [step, setStep] = useState<UploadStep>("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [keepOriginal, setKeepOriginal] = useState(false);
 
+  const busy = step === "uploading" || step === "analyzing";
+
+  // Neue Dateien an die bestehende, geordnete Liste anhängen. Ein PDF ersetzt
+  // die Auswahl (PDFs werden einzeln verarbeitet); Bilder werden gesammelt.
+  function addFiles(incoming: FileList | File[]) {
+    const list = Array.from(incoming);
+    if (list.length === 0) return;
+    setError(null);
+
+    const pdfIncoming = list.find(isPdf);
+    if (pdfIncoming) {
+      // Bei PDF nur diese eine Datei – mehrseitige PDFs liest die KI selbst.
+      setFiles([pdfIncoming]);
+      return;
+    }
+
+    setFiles((prev) => {
+      if (prev.some(isPdf)) return list; // vorher war ein PDF gewählt -> ersetzen
+      const merged = [...prev, ...list];
+      if (merged.length > MAX_PAGES) {
+        setError(`Höchstens ${MAX_PAGES} Seiten pro Dokument.`);
+        return merged.slice(0, MAX_PAGES);
+      }
+      return merged;
+    });
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    setFiles((prev) => {
+      const next = [...prev];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  }
+
+  function removeAt(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setError(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (!file) {
-      setError("Bitte zuerst eine Datei auswählen.");
+    if (files.length === 0) {
+      setError("Bitte zuerst mindestens eine Datei auswählen.");
       return;
     }
 
@@ -45,7 +92,8 @@ export function UploadForm() {
 
     try {
       const body = new FormData();
-      body.append("file", file);
+      // Reihenfolge der Seiten bleibt erhalten: in dieser Reihenfolge angehängt.
+      for (const f of files) body.append("file", f);
       body.append("keep_original", keepOriginal ? "true" : "false");
 
       setProgress(40);
@@ -62,9 +110,10 @@ export function UploadForm() {
       setProgress(100);
 
       if (!res.ok) {
-        const msg = data.code && ERROR_MESSAGES[data.code]
-          ? ERROR_MESSAGES[data.code]
-          : data.error ?? "Beim Hochladen ist ein Fehler aufgetreten.";
+        const msg =
+          data.code && ERROR_MESSAGES[data.code]
+            ? ERROR_MESSAGES[data.code]
+            : data.error ?? "Beim Hochladen ist ein Fehler aufgetreten.";
         setError(msg);
         if (data.documentId) {
           router.push(`/documents/${data.documentId}`);
@@ -90,7 +139,7 @@ export function UploadForm() {
     }
   }
 
-  const busy = step === "uploading" || step === "analyzing";
+  const onlyPdf = files.length === 1 && isPdf(files[0]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -99,48 +148,103 @@ export function UploadForm() {
         className={`cursor-pointer rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
           dragOver
             ? "border-navy bg-navy/5"
-            : file
+            : files.length > 0
             ? "border-green-400 bg-green-50"
             : "border-gray-300 bg-surface-muted hover:border-navy/50"
         } ${busy ? "pointer-events-none opacity-60" : ""}`}
         onClick={() => !busy && inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
           if (busy) return;
-          const dropped = e.dataTransfer.files?.[0];
-          if (dropped) setFile(dropped);
+          if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
         }}
       >
         <input
           ref={inputRef}
           type="file"
           accept={ACCEPT}
+          multiple
           className="hidden"
           disabled={busy}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            if (e.target.files?.length) addFiles(e.target.files);
+            // erlaubt erneutes Auswählen derselben Datei
+            e.target.value = "";
+          }}
         />
-        {file ? (
-          <div className="space-y-1">
-            <div className="text-2xl">📄</div>
-            <p className="font-medium text-ink">{file.name}</p>
-            <p className="text-xs text-ink-soft">
-              {(file.size / 1024 / 1024).toFixed(1)} MB · Klicken zum Ändern
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            <div className="text-3xl">⬆️</div>
-            <p className="text-sm text-ink-soft">
-              Datei hierher ziehen oder{" "}
-              <span className="font-medium text-navy underline">auswählen</span>
-            </p>
-            <p className="text-xs text-gray-400">PDF, JPG oder PNG · max. 10 MB</p>
-          </div>
-        )}
+        <div className="space-y-1">
+          <div className="text-3xl">⬆️</div>
+          <p className="text-sm text-ink-soft">
+            {files.length > 0 ? "Weitere Seiten hinzufügen oder " : "Dateien hierher ziehen oder "}
+            <span className="font-medium text-navy underline">auswählen</span>
+          </p>
+          <p className="text-xs text-gray-400">
+            PDF oder mehrere Fotos (JPG/PNG) · max. 10 MB pro Seite
+          </p>
+        </div>
       </div>
+
+      {/* Geordnete Seitenliste */}
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-ink-soft">
+            {onlyPdf
+              ? "1 PDF-Dokument (mehrseitig wird automatisch erkannt)"
+              : `${files.length} Seite${files.length === 1 ? "" : "n"} · Reihenfolge oben = Seite 1`}
+          </p>
+          {files.map((f, i) => (
+            <div
+              key={`${f.name}-${i}`}
+              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-navy/10 text-xs font-semibold text-navy">
+                {onlyPdf ? "📄" : i + 1}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm text-ink">{f.name}</span>
+              <span className="shrink-0 text-xs text-ink-soft">
+                {(f.size / 1024 / 1024).toFixed(1)} MB
+              </span>
+              {!onlyPdf && files.length > 1 && (
+                <span className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    disabled={busy || i === 0}
+                    onClick={() => move(i, -1)}
+                    aria-label="Nach oben"
+                    className="rounded px-1.5 text-ink-soft hover:bg-surface-muted disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || i === files.length - 1}
+                    onClick={() => move(i, 1)}
+                    aria-label="Nach unten"
+                    className="rounded px-1.5 text-ink-soft hover:bg-surface-muted disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => removeAt(i)}
+                aria-label="Entfernen"
+                className="shrink-0 rounded px-1.5 text-ink-soft hover:text-accent disabled:opacity-30"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Aufbewahrung: Standard ist Löschen nach Analyse (Privacy by Default) */}
       <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-white px-3 py-2.5">
@@ -152,12 +256,10 @@ export function UploadForm() {
           className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#1e293b]"
         />
         <span className="text-sm">
-          <span className="font-medium text-ink">
-            Originaldokument im Archiv behalten
-          </span>
+          <span className="font-medium text-ink">Originalseiten im Archiv behalten</span>
           <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">
-            Standard: Das Original wird nach der Analyse automatisch gelöscht,
-            nur das Ergebnis bleibt. Aktiviere dies, wenn du die Datei später
+            Standard: Die Originale werden nach der Analyse automatisch gelöscht,
+            nur das Ergebnis bleibt. Aktiviere dies, wenn du die Seiten später
             wieder ansehen möchtest.
           </span>
         </span>
@@ -190,23 +292,24 @@ export function UploadForm() {
 
       {/* Error */}
       {error && (
-        <p className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">
-          {error}
-        </p>
+        <p className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">{error}</p>
       )}
 
       <div className="flex gap-3">
-        <button type="submit" disabled={busy || !file} className="btn-primary">
-          {busy ? STEP_LABELS[step] : "Hochladen & analysieren"}
+        <button type="submit" disabled={busy || files.length === 0} className="btn-primary">
+          {busy
+            ? STEP_LABELS[step]
+            : files.length > 1
+            ? `${files.length} Seiten hochladen & analysieren`
+            : "Hochladen & analysieren"}
         </button>
-        {file && !busy && (
+        {files.length > 0 && !busy && (
           <button
             type="button"
             className="btn-secondary"
             onClick={() => {
-              setFile(null);
+              setFiles([]);
               setError(null);
-              if (inputRef.current) inputRef.current.value = "";
             }}
           >
             Zurücksetzen

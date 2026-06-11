@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { analyzeDocument } from "@/lib/ai";
-import { detectFileType, isAllowedOrigin } from "@/lib/upload";
+import { analyzeDocument, type AnalyzeInput } from "@/lib/ai";
+import { detectFileType, isAllowedOrigin, type DetectedFileType } from "@/lib/upload";
 import {
   checkQuota,
   consumeQuota,
@@ -13,8 +13,15 @@ import { captureError } from "@/lib/sentry";
 // KI-Analyse kann einige Sekunden dauern.
 export const maxDuration = 60;
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB pro Seite
+const MAX_TOTAL_BYTES = 25 * 1024 * 1024; // 25 MB gesamt
+const MAX_PAGES = 12; // mehrere Bilder pro Dokument
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "documents";
+
+interface PreparedPage {
+  buffer: Buffer;
+  detected: DetectedFileType;
+}
 
 export async function POST(request: Request) {
   // 1. CSRF-Schutz: nur Anfragen von der eigenen App-Domain zulassen.
@@ -39,28 +46,61 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
   }
 
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
+  // Mehrere Dateien (Seiten) werden alle unter dem Feld "file" gesendet.
+  const files = formData.getAll("file").filter((f): f is File => f instanceof File);
+  if (files.length === 0) {
     return NextResponse.json(
-      { error: "Bitte eine Datei auswählen." },
+      { error: "Bitte mindestens eine Datei auswählen." },
       { status: 400 },
     );
   }
-  // Opt-in: Original nach der Analyse behalten (Standard: löschen).
-  const keepOriginal = formData.get("keep_original") === "true";
-  if (file.size > MAX_BYTES) {
+  if (files.length > MAX_PAGES) {
     return NextResponse.json(
-      { error: "Die Datei ist zu groß (max. 10 MB)." },
+      { error: `Bitte höchstens ${MAX_PAGES} Seiten auf einmal hochladen.` },
       { status: 400 },
     );
   }
 
-  // 4. Echten Dateityp anhand der Magic Bytes bestimmen (nicht file.type).
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const detected = detectFileType(buffer);
-  if (!detected) {
+  // Opt-in: Originale nach der Analyse behalten (Standard: löschen).
+  const keepOriginal = formData.get("keep_original") === "true";
+
+  // 4. Jede Seite lesen und ihren echten Typ über die Magic Bytes bestimmen.
+  const pages: PreparedPage[] = [];
+  let totalBytes = 0;
+  for (const file of files) {
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json(
+        { error: "Eine Seite ist zu groß (max. 10 MB pro Datei)." },
+        { status: 400 },
+      );
+    }
+    totalBytes += file.size;
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      return NextResponse.json(
+        { error: "Die Dokumente sind insgesamt zu groß (max. 25 MB)." },
+        { status: 400 },
+      );
+    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const detected = detectFileType(buffer);
+    if (!detected) {
+      return NextResponse.json(
+        { error: "Nur echte PDF-, JPG- oder PNG-Dateien werden unterstützt." },
+        { status: 400 },
+      );
+    }
+    pages.push({ buffer, detected });
+  }
+
+  // Regel: Ein PDF ist bereits mehrseitig und wird einzeln verarbeitet. Mehrere
+  // Seiten sind nur als Bilder erlaubt (kein Mischen von PDF und Bildern).
+  const hasPdf = pages.some((p) => p.detected.mime === "application/pdf");
+  if (hasPdf && pages.length > 1) {
     return NextResponse.json(
-      { error: "Nur echte PDF-, JPG- oder PNG-Dateien werden unterstützt." },
+      {
+        error:
+          "PDF-Dateien sind bereits mehrseitig – bitte einzeln hochladen. Für mehrere Fotos lade Bilder (JPG/PNG) hoch.",
+      },
       { status: 400 },
     );
   }
@@ -74,15 +114,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // 6. Dokumentzeile zuerst anlegen (status='processing'), damit eine spätere
-  //    Datei stets durch eine Eigentümer-Zeile referenziert wird.
+  // 6. Dokumentzeile zuerst anlegen (status='processing').
   const { data: created, error: createError } = await supabase
     .from("documents")
     .insert({
       user_id: user.id,
-      file_name: file.name,
-      file_type: detected.mime,
+      file_name: files[0].name,
+      file_type: pages[0].detected.mime,
       status: "processing",
+      page_count: pages.length,
     })
     .select("id")
     .single();
@@ -95,10 +135,14 @@ export async function POST(request: Request) {
   }
 
   const documentId = created.id as string;
-  const storagePath = `${user.id}/${documentId}.${detected.ext}`;
+  // Seitenpfade liegen in einem Unterordner pro Dokument, nummeriert in
+  // Reihenfolge: <user>/<doc>/p1.jpg, p2.jpg …
+  const storagePaths = pages.map(
+    (p, i) => `${user.id}/${documentId}/p${i + 1}.${p.detected.ext}`,
+  );
 
   const cleanupStorage = async () => {
-    const { error } = await supabase.storage.from(BUCKET).remove([storagePath]);
+    const { error } = await supabase.storage.from(BUCKET).remove(storagePaths);
     if (error) console.error("Storage-Cleanup fehlgeschlagen:", error);
   };
   const deleteDocumentRow = async () => {
@@ -112,35 +156,34 @@ export async function POST(request: Request) {
   const markFailed = async (message: string) => {
     const { error } = await supabase
       .from("documents")
-      .update({ status: "failed", analysis_error: message, file_url: null })
+      .update({ status: "failed", analysis_error: message, file_url: null, file_urls: null })
       .eq("id", documentId)
       .eq("user_id", user.id);
     if (error) console.error("Status 'failed' konnte nicht gesetzt werden:", error);
   };
 
-  // 7. Datei in den Storage legen (session-gebundener Client, RLS schützt
+  // 7. Alle Seiten in den Storage legen (session-gebundener Client, RLS schützt
   //    den user_id/...-Ordner).
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, buffer, {
-      contentType: detected.mime,
-      upsert: false,
-    });
-
-  if (uploadError) {
-    console.error("Upload fehlgeschlagen:", uploadError);
-    await captureError(uploadError, { category: "storage", extra: { documentId } });
-    // Upload fehlgeschlagen -> kein Verbrauch buchen (Claude lief nie).
-    await markFailed("Die Datei konnte nicht gespeichert werden.");
-    return NextResponse.json(
-      { error: "Die Datei konnte nicht gespeichert werden.", documentId },
-      { status: 500 },
-    );
+  for (let i = 0; i < pages.length; i++) {
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(storagePaths[i], pages[i].buffer, {
+        contentType: pages[i].detected.mime,
+        upsert: false,
+      });
+    if (uploadError) {
+      console.error("Upload fehlgeschlagen:", uploadError);
+      await captureError(uploadError, { category: "storage", extra: { documentId } });
+      await cleanupStorage();
+      await markFailed("Die Datei konnte nicht gespeichert werden.");
+      return NextResponse.json(
+        { error: "Die Datei konnte nicht gespeichert werden.", documentId },
+        { status: 500 },
+      );
+    }
   }
 
-  // 8. Verbrauch buchen, unmittelbar vor dem Claude-Aufruf. Sollte das Limit
-  //    zwischen Vorprüfung und hier (Race) erreicht worden sein, wieder
-  //    aufräumen und 429 zurückgeben.
+  // 8. Verbrauch buchen, unmittelbar vor dem Claude-Aufruf.
   const consumed = await consumeQuota(supabase);
   if (!consumed.allowed) {
     await cleanupStorage();
@@ -151,23 +194,22 @@ export async function POST(request: Request) {
     );
   }
 
-  // 9. Analyse durchführen. Verbrauch ist gebucht und zählt ab jetzt, auch
-  //    wenn Claude fehlschlägt (Kosten können entstanden sein).
+  // 9. Analyse über ALLE Seiten gemeinsam.
   try {
-    const analysis = await analyzeDocument({
-      data: buffer,
-      mimeType: detected.mime,
-    });
+    const analysisInput: AnalyzeInput[] = pages.map((p) => ({
+      data: p.buffer,
+      mimeType: p.detected.mime,
+    }));
+    const analysis = await analyzeDocument(analysisInput);
 
-    // Datenschutz-by-Default: Wir speichern nur das strukturierte Analyse-
-    // Ergebnis. Der Originalinhalt (extracted_text) wird NICHT dauerhaft in der
-    // DB abgelegt, und die hochgeladene Datei wird nach der Analyse sofort aus
-    // dem Storage gelöscht – außer der Nutzer hat beim Upload ausdrücklich
-    // "Original behalten" gewählt (Archiv-Funktion, Opt-in).
+    // Datenschutz-by-Default: nur das strukturierte Ergebnis bleibt; die
+    // Originalseiten werden nach der Analyse gelöscht – außer der Nutzer hat
+    // "Original behalten" gewählt.
     const { error: updateError } = await supabase
       .from("documents")
       .update({
-        file_url: keepOriginal ? storagePath : null,
+        file_url: keepOriginal ? storagePaths[0] : null,
+        file_urls: keepOriginal ? storagePaths : null,
         extracted_text: null,
         analysis_json: analysis,
         category: analysis.category ?? "sonstiges",
@@ -189,8 +231,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Originaldatei nach erfolgreicher Analyse entfernen (Privacy by Default),
-    // sofern der Nutzer sie nicht ausdrücklich behalten möchte.
     if (!keepOriginal) await cleanupStorage();
 
     await finalizeQuota(supabase, consumed.usageId, documentId, "completed");
