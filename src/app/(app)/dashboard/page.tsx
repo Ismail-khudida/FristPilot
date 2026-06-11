@@ -53,14 +53,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-ink">Dein Bürokratie-Überblick</h1>
           <p className="mt-1 text-sm text-ink-soft">
             Was ist wichtig, was läuft bald ab — und was musst du tun?
           </p>
         </div>
-        <Link href="/upload" className="btn-primary">
+        <Link href="/upload" className="btn-primary w-full sm:w-auto">
           Dokument hochladen
         </Link>
       </div>

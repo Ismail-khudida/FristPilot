@@ -10,8 +10,13 @@ SUPABASE_STORAGE_BUCKET = "documents"
 DAILY_USER_ANALYSIS_LIMIT = "10"
 DAILY_GLOBAL_ANALYSIS_LIMIT = "200"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
-APP_ORIGIN = "https://fristpilot.ismailkhudida.workers.dev"
-NEXT_PUBLIC_APP_URL = "https://fristpilot.ismailkhudida.workers.dev"
+# Erlaubte Origins (CSRF). Kommagetrennt – alle verbundenen Domains. Die App
+# funktioniert dadurch gleichzeitig auf workers.dev und den neuen Domains.
+APP_ORIGIN = "https://fristpilot.com,https://www.fristpilot.com,https://fristpilot.app,https://fristpilot.ismailkhudida.workers.dev"
+# Kanonische URL für Links in Erinnerungs-E-Mails (Server, ohne Request-Kontext).
+NEXT_PUBLIC_APP_URL = "https://fristpilot.com"
+# Absender der Erinnerungs-Mails. Erst auf eine fristpilot.com-Adresse umstellen,
+# wenn die Domain in Resend verifiziert ist (siehe SETUP_DOMAINS.md).
 REMINDER_FROM_EMAIL = "FristPilot <onboarding@resend.dev>"
 NEXT_PUBLIC_SUPABASE_URL = "https://wudgeccenmwthkurqddp.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZGdlY2Nlbm13dGhrdXJxZGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTg5NTMsImV4cCI6MjA5NjQ5NDk1M30.BovQ040PAwFo89RCoxEe4sW1iNi49pwyjEG1WDNziWg"

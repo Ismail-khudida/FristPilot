@@ -47,27 +47,46 @@ export function detectFileType(buffer: Buffer): DetectedFileType | null {
   return null;
 }
 
-// Prüft, ob die Anfrage von der eigenen App-Domain stammt (CSRF-Schutz).
-// Erlaubte Domain via APP_ORIGIN; Fallback ist die Origin des Requests selbst,
-// damit lokale Entwicklung ohne Konfiguration funktioniert.
+// Prüft, ob die Anfrage von einer eigenen App-Domain stammt (CSRF-Schutz).
+// Mehrere Domains werden unterstützt (workers.dev + fristpilot.com/.app):
+//   - APP_ORIGIN darf eine kommagetrennte Liste erlaubter Origins sein,
+//   - zusätzlich gilt die Domain, an die die Anfrage tatsächlich ging
+//     (x-forwarded-host/host), als erlaubt – so funktioniert die App auf jeder
+//     verbundenen Domain ohne Code-Änderung.
+function allowedOrigins(request: Request): Set<string> {
+  const set = new Set<string>();
+  (process.env.APP_ORIGIN ?? "")
+    .split(",")
+    .map((s) => s.trim().replace(/\/$/, ""))
+    .filter(Boolean)
+    .forEach((o) => set.add(o));
+
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  if (host) set.add(`${proto}://${host}`);
+
+  const reqOrigin = safeOrigin(request.url);
+  if (reqOrigin) set.add(reqOrigin);
+
+  return set;
+}
+
 export function isAllowedOrigin(request: Request): boolean {
-  const configured = process.env.APP_ORIGIN?.trim();
-  const allowed = configured || safeOrigin(request.url);
-  if (!allowed) return false;
+  const allowed = allowedOrigins(request);
+  if (allowed.size === 0) return false;
 
   const origin = request.headers.get("origin");
-  if (origin) {
-    return origin === allowed;
-  }
+  if (origin) return allowed.has(origin.replace(/\/$/, ""));
 
-  // Kein Origin-Header (z. B. manche Browser bei same-origin POST):
-  // auf den Referer zurückfallen.
+  // Kein Origin-Header (manche Browser bei same-origin POST): Referer prüfen.
   const referer = request.headers.get("referer");
   if (referer) {
-    return referer === allowed || referer.startsWith(allowed + "/");
+    return [...allowed].some(
+      (a) => referer === a || referer.startsWith(a + "/"),
+    );
   }
 
-  // Weder Origin noch Referer vorhanden -> ablehnen.
   return false;
 }
 

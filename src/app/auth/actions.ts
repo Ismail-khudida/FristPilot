@@ -30,14 +30,17 @@ function safeRedirect(value: FormDataEntryValue | null): string {
   return v;
 }
 
-// Absolute App-Origin für E-Mail-Redirect-Links.
+// Absolute App-Origin für E-Mail-Redirect-Links. Bevorzugt die Domain, auf der
+// der Nutzer tatsächlich ist (damit Bestätigungs-/Reset-Links auf dieselbe
+// Domain zeigen – egal ob fristpilot.com, fristpilot.app oder workers.dev).
+// APP_ORIGIN (ggf. kommagetrennt) dient nur als Fallback.
 async function getOrigin(): Promise<string> {
-  const fromEnv = process.env.APP_ORIGIN?.trim();
-  if (fromEnv) return fromEnv;
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "";
+  if (host) return `${proto}://${host}`;
+  const fallback = (process.env.APP_ORIGIN ?? "").split(",")[0]?.trim();
+  return fallback ?? "";
 }
 
 export async function login(

@@ -218,7 +218,7 @@ export async function POST(request: Request) {
 
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
-    "https://fristpilot.ismailkhudida.workers.dev";
+    "https://fristpilot.com";
 
   let usersSent = 0;
   let remindersSent = 0;

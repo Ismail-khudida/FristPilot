@@ -58,8 +58,21 @@ export default async function DocumentsPage({
     .limit(200);
   if (activeCat) request = request.eq("category", activeCat);
 
-  const { data } = await request;
+  // Zweite, leichte Abfrage: ALLE Dokumente des Nutzers (nur Kategorie), um die
+  // Filterleiste dynamisch aus den tatsächlich vorhandenen Kategorien zu bauen.
+  const [{ data }, { data: allCatRows }] = await Promise.all([
+    request,
+    supabase.from("documents").select("category"),
+  ]);
   let documents = (data ?? []) as unknown as DocRow[];
+
+  const catRows = (allCatRows ?? []) as { category: string | null }[];
+  const hasAnyDocuments = catRows.length > 0;
+  // Nur Kategorien anzeigen, in denen mindestens ein Dokument existiert –
+  // in der kanonischen Reihenfolge.
+  const availableCats = DOC_CATEGORIES.filter((c) =>
+    catRows.some((r) => r.category === c),
+  );
 
   // Suche über Dateiname, Absender und Zusammenfassung (clientnah, da die
   // Datenmenge pro Nutzer klein ist; bei Skalierung -> Volltextindex).
@@ -88,59 +101,67 @@ export default async function DocumentsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-ink">Dokumente</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Dein Archiv — automatisch nach Lebensbereichen sortiert.
+            Dein Archiv — automatisch sortiert.
           </p>
         </div>
-        <Link href="/upload" className="btn-primary">
+        <Link href="/upload" className="btn-primary w-full sm:w-auto">
           Dokument hochladen
         </Link>
       </div>
 
-      {/* Suche */}
-      <form method="GET" action="/documents" className="flex gap-2">
-        {activeCat && <input type="hidden" name="cat" value={activeCat} />}
-        <input
-          type="search"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Suchen nach Absender, Datei oder Inhalt…"
-          className="field-input max-w-md"
-        />
-        <button type="submit" className="btn-secondary">
-          Suchen
-        </button>
-      </form>
-
-      {/* Kategorie-Filter */}
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href={buildHref(null)}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            !activeCat
-              ? "bg-navy text-white"
-              : "border border-gray-200 bg-white text-ink-soft hover:border-navy/40"
-          }`}
+      {/* Suche – nur wenn überhaupt Dokumente vorhanden sind */}
+      {hasAnyDocuments && (
+        <form
+          method="GET"
+          action="/documents"
+          className="flex flex-col gap-2 sm:flex-row"
         >
-          Alle
-        </Link>
-        {DOC_CATEGORIES.map((c) => (
+          {activeCat && <input type="hidden" name="cat" value={activeCat} />}
+          <input
+            type="search"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Suchen nach Absender, Datei oder Inhalt…"
+            className="field-input sm:max-w-md"
+          />
+          <button type="submit" className="btn-secondary w-full sm:w-auto">
+            Suchen
+          </button>
+        </form>
+      )}
+
+      {/* Kategorie-Filter – dynamisch: nur Kategorien mit Dokumenten. */}
+      {availableCats.length > 0 && (
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <Link
-            key={c}
-            href={buildHref(c)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              activeCat === c
+            href={buildHref(null)}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              !activeCat
                 ? "bg-navy text-white"
                 : "border border-gray-200 bg-white text-ink-soft hover:border-navy/40"
             }`}
           >
-            {DOC_CATEGORY_LABELS[c]}
+            Alle
           </Link>
-        ))}
-      </div>
+          {availableCats.map((c) => (
+            <Link
+              key={c}
+              href={buildHref(c)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeCat === c
+                  ? "bg-navy text-white"
+                  : "border border-gray-200 bg-white text-ink-soft hover:border-navy/40"
+              }`}
+            >
+              {DOC_CATEGORY_LABELS[c]}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Vertragsübersicht als vertiefte Ansicht dieser Kategorien */}
       {(activeCat === "vertrag" || activeCat === "versicherung") && (
@@ -161,13 +182,27 @@ export default async function DocumentsPage({
 
       {/* Liste */}
       {documents.length === 0 ? (
-        <div className="card">
-          <p className="text-sm text-ink-soft">
-            {query || activeCat
-              ? "Keine Dokumente für diese Auswahl gefunden."
-              : "Noch keine Dokumente. Lade dein erstes Dokument hoch — FristPilot sortiert es automatisch ein."}
-          </p>
-        </div>
+        !hasAnyDocuments ? (
+          <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white p-10 text-center">
+            <div className="text-4xl">🗂️</div>
+            <h2 className="mt-4 text-lg font-semibold text-ink">
+              Noch keine Dokumente
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
+              FristPilot sortiert deine Dokumente automatisch, sobald du sie
+              hochlädst.
+            </p>
+            <Link href="/upload" className="btn-primary mt-6 inline-flex">
+              Erstes Dokument hochladen
+            </Link>
+          </div>
+        ) : (
+          <div className="card">
+            <p className="text-sm text-ink-soft">
+              Keine Dokumente für diese Auswahl gefunden.
+            </p>
+          </div>
+        )
       ) : (
         <div className="space-y-3">
           {documents.map((doc) => {
