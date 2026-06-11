@@ -49,7 +49,7 @@ export default function PricingPage() {
             <ul className="mb-8 space-y-3 text-sm">
               {[
                 "Unbegrenzte Dokumente (PDF, JPG, PNG)",
-                "KI-Analyse mit Fristerkennung",
+                "Automatische Analyse mit Fristerkennung",
                 "Einfache Erklärung auf Deutsch",
                 "Erinnerungen & Dashboard",
                 "DSGVO-konform",

@@ -41,7 +41,7 @@ export default function DemoPage() {
               </span>
             </div>
             <span className="text-xs font-medium text-green-700">
-              KI-Sicherheit: Hoch (88%)
+              Erkennung: sicher
             </span>
           </div>
 
@@ -77,7 +77,7 @@ export default function DemoPage() {
                 Mögliche Kündigungsfrist erkannt
               </span>
               <span className="text-xs font-medium text-green-700">
-                KI-Sicherheit: Hoch (85%)
+                Erkennung: sicher
               </span>
             </div>
 

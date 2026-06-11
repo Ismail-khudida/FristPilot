@@ -11,7 +11,7 @@ type UploadStep = "idle" | "uploading" | "analyzing" | "done";
 const STEP_LABELS: Record<UploadStep, string> = {
   idle: "",
   uploading: "Seiten werden hochgeladen…",
-  analyzing: "KI analysiert das Dokument…",
+  analyzing: "FristPilot analysiert das Dokument…",
   done: "Analyse abgeschlossen!",
 };
 
@@ -103,6 +103,7 @@ export function UploadForm() {
 
       const data = (await res.json()) as {
         documentId?: string | null;
+        documentCount?: number;
         error?: string;
         code?: string;
       };
@@ -126,7 +127,13 @@ export function UploadForm() {
 
       if (data.documentId) {
         setStep("done");
-        router.push(`/documents/${data.documentId}`);
+        // Wurden aus den Bildern mehrere getrennte Dokumente erkannt, geht es
+        // zur Übersicht; bei genau einem direkt ins Dokument.
+        if ((data.documentCount ?? 1) > 1) {
+          router.push("/documents");
+        } else {
+          router.push(`/documents/${data.documentId}`);
+        }
       } else {
         setError("Unerwartete Antwort vom Server.");
         setStep("idle");
@@ -196,7 +203,9 @@ export function UploadForm() {
           <p className="text-xs font-medium text-ink-soft">
             {onlyPdf
               ? "1 PDF-Dokument (mehrseitig wird automatisch erkannt)"
-              : `${files.length} Seite${files.length === 1 ? "" : "n"} · Reihenfolge oben = Seite 1`}
+              : files.length === 1
+                ? "1 Bild"
+                : `${files.length} Bilder · FristPilot erkennt automatisch, ob es ein mehrseitiges Dokument oder mehrere Briefe sind`}
           </p>
           {files.map((f, i) => (
             <div
@@ -283,7 +292,7 @@ export function UploadForm() {
               {step === "uploading" ? "→ " : "✓ "}Hochladen
             </span>
             <span className={step === "analyzing" ? "font-medium text-navy" : ""}>
-              {step === "analyzing" ? "→ " : ""}KI-Analyse
+              {step === "analyzing" ? "→ " : ""}Analyse
             </span>
             <span>Fristen erkennen</span>
           </div>
@@ -300,7 +309,7 @@ export function UploadForm() {
           {busy
             ? STEP_LABELS[step]
             : files.length > 1
-            ? `${files.length} Seiten hochladen & analysieren`
+            ? `${files.length} Bilder hochladen & analysieren`
             : "Hochladen & analysieren"}
         </button>
         {files.length > 0 && !busy && (

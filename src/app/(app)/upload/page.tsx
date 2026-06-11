@@ -39,7 +39,7 @@ export default async function UploadPage() {
             },
             {
               icon: "🤖",
-              title: "KI liest & erkennt Fristen",
+              title: "FristPilot liest & erkennt Fristen",
               text: "Analyse durch Anthropic (transparent ausgewiesen).",
             },
             {

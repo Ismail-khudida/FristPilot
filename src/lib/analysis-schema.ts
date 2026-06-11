@@ -163,6 +163,8 @@ export const AnalysisSchema = z.object({
   document_type: safeString("Sonstiges").catch("Sonstiges"),
   category: z.enum(DOC_CATEGORIES).catch("sonstiges"),
   sender: safeString("Unbekannt").catch("Unbekannt"),
+  // Kurzer, sprechender Anzeigename (statt "image.jpg").
+  suggested_title: safeString("").catch(""),
   summary_simple: safeString("").catch(""),
   contract: z
     .preprocess(
@@ -195,6 +197,7 @@ export const FALLBACK_ANALYSIS: DocumentAnalysis = {
   document_type: "Sonstiges",
   category: "sonstiges",
   sender: "Unbekannt",
+  suggested_title: "",
   summary_simple:
     "Dieses Dokument konnte nicht automatisch ausgewertet werden. Bitte prüfe es selbst.",
   contract: null,
@@ -203,6 +206,54 @@ export const FALLBACK_ANALYSIS: DocumentAnalysis = {
   risk_level: "medium",
   confidence: 0,
 };
+
+// Ein Dokument plus die Bild-Indizes (1-basiert), aus denen es besteht.
+// Wird verwendet, wenn mehrere hochgeladene Bilder in mehrere Dokumente
+// aufgeteilt werden sollen.
+export const DocumentWithPagesSchema = AnalysisSchema.extend({
+  page_indices: z.preprocess(
+    (v) =>
+      Array.isArray(v)
+        ? v
+            .map((n) => (typeof n === "number" ? n : Number(n)))
+            .filter((n) => Number.isInteger(n) && n > 0)
+        : [],
+    z.array(z.number().int().positive()),
+  ),
+});
+
+export type DocumentWithPages = z.infer<typeof DocumentWithPagesSchema>;
+
+export const MultiDocumentSchema = z.object({
+  documents: z.array(DocumentWithPagesSchema),
+});
+
+export type ParseMultiResult =
+  | { success: true; documents: DocumentWithPages[] }
+  | { success: false; error: string };
+
+// Robust ein JSON-Objekt {documents:[...]} extrahieren und validieren.
+export function parseMultiAnalysisResult(raw: string): ParseMultiResult {
+  let text = raw.trim();
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) text = fence[1].trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    text = text.slice(start, end + 1);
+  }
+  let candidate: unknown;
+  try {
+    candidate = JSON.parse(text);
+  } catch {
+    return { success: false, error: "Die Antwort war kein gültiges JSON." };
+  }
+  const result = MultiDocumentSchema.safeParse(candidate);
+  if (!result.success || result.data.documents.length === 0) {
+    return { success: false, error: "Die Antwort entsprach nicht dem erwarteten Format." };
+  }
+  return { success: true, documents: result.data.documents };
+}
 
 export type ParseAnalysisResult =
   | { success: true; data: DocumentAnalysis }

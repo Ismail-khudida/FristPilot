@@ -17,11 +17,14 @@ import {
 } from "@/lib/analysis-schema";
 import type { DocumentRow } from "@/lib/types";
 
+// Verständliche Erkennungssicherheit in Worten – ohne prominente Prozentzahl.
 function ConfidenceLabel({ value }: { value: number | null | undefined }) {
   const pct = Math.round((value ?? 0) * 100);
-  if (pct >= 80) return <span className="text-xs font-medium text-green-700">KI-Sicherheit: Hoch ({pct}%)</span>;
-  if (pct >= 50) return <span className="text-xs font-medium text-amber-700">KI-Sicherheit: Mittel ({pct}%)</span>;
-  return <span className="text-xs font-medium text-red-700">KI-Sicherheit: Niedrig ({pct}%)</span>;
+  if (pct >= 80)
+    return <span className="text-xs font-medium text-green-700">Erkennung: sicher</span>;
+  if (pct >= 50)
+    return <span className="text-xs font-medium text-amber-700">Erkennung: unsicher</span>;
+  return <span className="text-xs font-medium text-red-700">Bitte prüfen</span>;
 }
 
 function DeadlineUrgency({ date }: { date: string | null }) {
@@ -123,8 +126,8 @@ export default async function DocumentPage({
             <p className="text-sm font-medium text-ink">Analyse läuft…</p>
           </div>
           <p className="mt-2 text-sm text-ink-soft">
-            Dein Dokument wird gerade von der KI ausgewertet. Das dauert
-            normalerweise 10–30 Sekunden. Diese Seite aktualisiert sich automatisch.
+            Dein Dokument wird gerade ausgewertet. Das dauert normalerweise
+            10–30 Sekunden. Diese Seite aktualisiert sich automatisch.
           </p>
         </div>
       ) : doc.status === "failed" || !analysis ? (

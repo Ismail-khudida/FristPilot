@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { RiskBadge } from "@/components/RiskBadge";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, daysUntil } from "@/lib/format";
 import {
   DOC_CATEGORIES,
   DOC_CATEGORY_LABELS,
@@ -18,11 +18,26 @@ interface DocRow {
     sender?: string;
     risk_level?: string;
     summary_simple?: string;
+    deadlines?: { date?: string | null }[];
   } | null;
 }
 
 function isDocCategory(v: string | undefined): v is DocCategory {
   return !!v && (DOC_CATEGORIES as readonly string[]).includes(v);
+}
+
+// Wichtigste (nächste, nicht überfällige bevorzugt) Frist eines Dokuments.
+function topDeadline(doc: DocRow): string | null {
+  const dates = (doc.analysis_json?.deadlines ?? [])
+    .map((d) => d.date)
+    .filter((d): d is string => Boolean(d))
+    .sort();
+  if (dates.length === 0) return null;
+  const upcoming = dates.find((d) => {
+    const days = daysUntil(d);
+    return days !== null && days >= 0;
+  });
+  return upcoming ?? dates[0];
 }
 
 // Dokumentenarchiv: alle Dokumente mit Kategorie-Filter und Suche.
@@ -155,34 +170,26 @@ export default async function DocumentsPage({
         </div>
       ) : (
         <div className="space-y-3">
-          {documents.map((doc) => (
+          {documents.map((doc) => {
+            const deadline = topDeadline(doc);
+            return (
             <Link
               key={doc.id}
               href={`/documents/${doc.id}`}
-              className="card flex flex-wrap items-center justify-between gap-3 transition-colors hover:border-navy/40"
+              className="card block space-y-1.5 transition-colors hover:border-navy/40"
             >
-              <div className="min-w-0">
-                <p className="truncate font-medium text-ink">{doc.file_name}</p>
-                <p className="text-xs text-ink-soft">
-                  {doc.analysis_json?.sender
-                    ? `${doc.analysis_json.sender} · `
-                    : ""}
-                  {formatDateTime(doc.created_at)}
+              {/* Titel + Wichtigkeit/Status */}
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 flex-1 truncate font-medium text-ink">
+                  {doc.file_name}
                 </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {isDocCategory(doc.category ?? undefined) && (
-                  <span className="inline-flex items-center rounded-full bg-navy/10 px-2.5 py-1 text-xs font-medium text-navy">
-                    {DOC_CATEGORY_LABELS[doc.category as DocCategory]}
-                  </span>
-                )}
                 {doc.status === "processing" ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-surface-muted px-3 py-1 text-xs font-medium text-ink-soft">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-ink-soft">
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-navy/40" />
-                    Analyse läuft…
+                    läuft…
                   </span>
                 ) : doc.status === "failed" ? (
-                  <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
+                  <span className="inline-flex shrink-0 items-center rounded-full border border-accent/30 bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">
                     Fehlgeschlagen
                   </span>
                 ) : (
@@ -191,8 +198,30 @@ export default async function DocumentsPage({
                   )
                 )}
               </div>
+
+              {/* Absender */}
+              {doc.analysis_json?.sender && (
+                <p className="truncate text-xs text-ink-soft">
+                  {doc.analysis_json.sender}
+                </p>
+              )}
+
+              {/* Kategorie + wichtigste Frist */}
+              <div className="flex flex-wrap items-center gap-2">
+                {isDocCategory(doc.category ?? undefined) && (
+                  <span className="inline-flex items-center rounded-full bg-navy/10 px-2.5 py-0.5 text-xs font-medium text-navy">
+                    {DOC_CATEGORY_LABELS[doc.category as DocCategory]}
+                  </span>
+                )}
+                {deadline && (
+                  <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
+                    🗓️ Frist {formatDate(deadline)}
+                  </span>
+                )}
+              </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
