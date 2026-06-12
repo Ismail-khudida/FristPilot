@@ -34,18 +34,16 @@ export default async function Home() {
           Closed Beta · Kostenlos in der Testphase
         </div>
         <h1 className="mt-4 text-4xl font-bold leading-tight text-ink sm:text-5xl">
-          Verpasse keine<br />
-          <span className="text-navy">Frist mehr.</span>
+          Dein digitaler Assistent für{" "}
+          <span className="text-navy">Papierkram und Bürokratie.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-          Ordwell liest deine Briefe, erkennt was wichtig ist und zeigt dir
-          genau, <strong className="font-semibold text-ink">was du bis wann tun
-          musst</strong> — von der Krankenkasse über Versicherungen bis zur
-          Mahnung.
+          Ordwell organisiert Dokumente, erkennt wichtige Fristen und hilft dir,
+          den Überblick zu behalten, damit du nicht alles im Kopf behalten musst.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Link href="/register" className="btn-primary px-8 py-3 text-base">
-            Jetzt kostenlos testen
+            Kostenlos registrieren und sofort loslegen
           </Link>
           <Link href="/demo" className="btn-secondary px-8 py-3 text-base">
             Beispiel ansehen
