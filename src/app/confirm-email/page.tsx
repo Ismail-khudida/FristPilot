@@ -32,6 +32,26 @@ export default async function ConfirmEmailPage({
           <ResendConfirmationForm email={email ?? ""} />
         </div>
 
+        {/* Aha-Moment während der Wartezeit: Beispiel-Analyse ansehen (U2) */}
+        <div className="card mt-4 space-y-3 border-l-4 border-l-navy">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">👀</span>
+            <div>
+              <h2 className="text-sm font-semibold text-ink">
+                Während du wartest: Schau dir an, was Ordwell kann
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                Unser Beispiel zeigt dir, wie ein analysierter Brief aussieht —
+                mit erkannter Frist, einfacher Erklärung und Erinnerung. Ganz
+                ohne eigenen Upload.
+              </p>
+            </div>
+          </div>
+          <Link href="/demo" className="btn-primary w-full text-center">
+            Beispiel-Analyse ansehen →
+          </Link>
+        </div>
+
         <p className="mt-6 text-center text-sm text-ink-soft">
           <Link href="/login" className="font-medium text-navy underline">
             Zurück zur Anmeldung
