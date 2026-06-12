@@ -15,9 +15,8 @@ ANTHROPIC_MODEL = "claude-sonnet-4-6"
 APP_ORIGIN = "https://ordwell.de,https://www.ordwell.de,https://ordwell.ismailkhudida.workers.dev"
 # Kanonische Hauptdomain für Links in Erinnerungs-E-Mails (Server, ohne Request-Kontext).
 NEXT_PUBLIC_APP_URL = "https://ordwell.de"
-# Absender der Erinnerungs-Mails. Erst auf eine ordwell.de-Adresse umstellen,
-# wenn die Domain in Resend verifiziert ist (siehe SETUP_DOMAINS.md).
-REMINDER_FROM_EMAIL = "Ordwell <onboarding@resend.dev>"
+# Absender der Erinnerungs-Mails. ordwell.de ist in Resend verifiziert.
+REMINDER_FROM_EMAIL = "Ordwell <noreply@ordwell.de>"
 # Empfänger der Cron-Ausfall-Alarme (Dead-Man-Switch /api/cron/health).
 ALERT_EMAIL = "ismail.khudida@recmo.de"
 # Max. Alter des letzten Erinnerungs-Laufs in Stunden, bevor alarmiert wird
