@@ -95,7 +95,7 @@ export default async function ContractsPage() {
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
             Lade Vertragsunterlagen, Versicherungspolicen oder Abo-Bestätigungen
-            hoch — FristPilot erkennt Anbieter, Kosten, Laufzeit und
+            hoch — Ordwell erkennt Anbieter, Kosten, Laufzeit und
             Kündigungsfrist automatisch.
           </p>
           <Link href="/upload" className="btn-primary mt-6 inline-flex">

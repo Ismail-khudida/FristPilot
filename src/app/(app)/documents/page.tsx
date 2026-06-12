@@ -189,7 +189,7 @@ export default async function DocumentsPage({
               Noch keine Dokumente
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-soft">
-              FristPilot sortiert deine Dokumente automatisch, sobald du sie
+              Ordwell sortiert deine Dokumente automatisch, sobald du sie
               hochlädst.
             </p>
             <Link href="/upload" className="btn-primary mt-6 inline-flex">

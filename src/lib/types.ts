@@ -1,4 +1,4 @@
-// Gemeinsame Typen für FristPilot.
+// Gemeinsame Typen für Ordwell.
 // Die Analyse-Typen werden aus dem Zod-Schema abgeleitet (Single Source of
 // Truth) und hier wiederveröffentlicht, damit bestehende Importe weiter gelten.
 

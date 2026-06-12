@@ -14,7 +14,7 @@ export default async function UploadPage() {
         <h1 className="text-2xl font-semibold text-ink">Dokument hochladen</h1>
         <p className="mt-1 text-sm text-ink-soft">
           Lade einen Brief, eine Rechnung oder ein anderes Dokument hoch.
-          FristPilot erklärt es in einfacher Sprache und sucht nach möglichen
+          Ordwell erklärt es in einfacher Sprache und sucht nach möglichen
           Fristen. Das Originaldokument wird nach der Analyse automatisch
           gelöscht.
         </p>
@@ -39,7 +39,7 @@ export default async function UploadPage() {
             },
             {
               icon: "🤖",
-              title: "FristPilot liest & erkennt Fristen",
+              title: "Ordwell liest & erkennt Fristen",
               text: "Analyse durch Anthropic (transparent ausgewiesen).",
             },
             {

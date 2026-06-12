@@ -101,7 +101,7 @@ function buildEmail(items: PendingNotification[], appUrl: string): string {
 
   return `<!doctype html><html><body style="font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;padding:24px;">
     <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;">
-      <h1 style="font-size:20px;color:#0f172a;margin:0 0 4px;">FristPilot – anstehende Fristen</h1>
+      <h1 style="font-size:20px;color:#0f172a;margin:0 0 4px;">Ordwell – anstehende Fristen</h1>
       <p style="color:#64748b;font-size:14px;margin:0 0 20px;">
         Diese Fristen brauchen deine Aufmerksamkeit. Bitte prüfe, ob du handeln musst.
       </p>
@@ -112,7 +112,7 @@ function buildEmail(items: PendingNotification[], appUrl: string): string {
         </a>
       </div>
       <p style="color:#94a3b8;font-size:12px;margin-top:24px;">
-        FristPilot erkennt mögliche Fristen automatisch und ohne Gewähr. Bitte
+        Ordwell erkennt mögliche Fristen automatisch und ohne Gewähr. Bitte
         prüfe wichtige Dokumente immer selbst.
       </p>
     </div>
@@ -218,7 +218,7 @@ export async function POST(request: Request) {
 
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
-    "https://fristpilot.app";
+    "https://ordwell.de";
 
   let usersSent = 0;
   let remindersSent = 0;

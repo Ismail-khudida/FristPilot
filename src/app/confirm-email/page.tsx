@@ -12,7 +12,7 @@ export default async function ConfirmEmailPage({
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mb-2 text-2xl font-semibold text-navy">FristPilot</div>
+          <div className="mb-2 text-2xl font-semibold text-navy">Ordwell</div>
         </div>
 
         <div className="card space-y-4">

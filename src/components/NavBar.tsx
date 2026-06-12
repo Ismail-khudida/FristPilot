@@ -27,7 +27,7 @@ export function NavBar({ email }: { email: string | null }) {
           onClick={() => setOpen(false)}
           className="text-lg font-semibold text-navy"
         >
-          FristPilot
+          Ordwell
         </Link>
 
         {/* Desktop-Navigation */}

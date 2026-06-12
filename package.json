@@ -1,8 +1,8 @@
 {
-  "name": "fristpilot",
+  "name": "ordwell",
   "version": "0.1.0",
   "private": true,
-  "description": "FristPilot – erkennt wichtige Fristen aus Dokumenten und erstellt Erinnerungen.",
+  "description": "Ordwell – erkennt wichtige Fristen aus Dokumenten und erstellt Erinnerungen.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

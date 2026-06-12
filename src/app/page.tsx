@@ -16,7 +16,7 @@ export default async function Home() {
       {/* Nav */}
       <header className="border-b border-gray-100">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <span className="text-lg font-semibold text-navy">FristPilot</span>
+          <span className="text-lg font-semibold text-navy">Ordwell</span>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-ink-soft hover:text-ink">
               Anmelden
@@ -38,7 +38,7 @@ export default async function Home() {
           <span className="text-navy">Frist mehr.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-          FristPilot liest deine Briefe, erkennt was wichtig ist und zeigt dir
+          Ordwell liest deine Briefe, erkennt was wichtig ist und zeigt dir
           genau, <strong className="font-semibold text-ink">was du bis wann tun
           musst</strong> — von der Krankenkasse über Versicherungen bis zur
           Mahnung.
@@ -136,12 +136,12 @@ export default async function Home() {
             {
               emoji: "📬",
               title: "Behördenpost",
-              text: "Amtliche Briefe sind oft unverständlich. FristPilot erklärt sie in klarer Sprache — ohne Fachwissen.",
+              text: "Amtliche Briefe sind oft unverständlich. Ordwell erklärt sie in klarer Sprache — ohne Fachwissen.",
             },
             {
               emoji: "⚠️",
               title: "Versteckte Fristen",
-              text: "In Versicherungen, Rechnungen und Mahnungen stecken Fristen. FristPilot findet sie, bevor es zu spät ist.",
+              text: "In Versicherungen, Rechnungen und Mahnungen stecken Fristen. Ordwell findet sie, bevor es zu spät ist.",
             },
             {
               emoji: "🗓️",
@@ -173,8 +173,8 @@ export default async function Home() {
               },
               {
                 step: "2",
-                title: "FristPilot analysiert",
-                text: "FristPilot liest das Dokument, erkennt Fristen und erklärt den Inhalt auf verständlichem Deutsch.",
+                title: "Ordwell analysiert",
+                text: "Ordwell liest das Dokument, erkennt Fristen und erklärt den Inhalt auf verständlichem Deutsch.",
               },
               {
                 step: "3",
@@ -197,7 +197,7 @@ export default async function Home() {
       {/* For whom */}
       <section className="mx-auto max-w-5xl px-4 py-20">
         <h2 className="mb-4 text-center text-3xl font-bold text-ink">
-          Für wen ist FristPilot?
+          Für wen ist Ordwell?
         </h2>
         <p className="mx-auto mb-12 max-w-xl text-center text-ink-soft">
           Für alle, die wichtige Post erhalten — und keine Zeit haben, jedes
@@ -241,7 +241,7 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 text-xs text-ink-soft">
-          <span>© 2025 FristPilot</span>
+          <span>© {new Date().getFullYear()} Ordwell</span>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">Datenschutz</Link>
             <Link href="/imprint" className="hover:underline">Impressum</Link>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Impressum – FristPilot",
+  title: "Impressum – Ordwell",
 };
 
 // ─────────────────────────────────────────────
@@ -45,7 +45,7 @@ export default function ImprintPage() {
 
         <Section title="Haftungshinweis">
           <p className="text-sm leading-relaxed text-ink">
-            FristPilot analysiert Dokumente mithilfe künstlicher Intelligenz und
+            Ordwell analysiert Dokumente mithilfe künstlicher Intelligenz und
             gibt Hinweise auf mögliche Fristen. Die Ergebnisse stellen{" "}
             <strong>keine Rechtsberatung</strong> dar und können Fehler
             enthalten. Für Vollständigkeit und Richtigkeit wird keine Haftung

@@ -70,11 +70,11 @@ export default async function DashboardPage() {
         <div className="rounded-xl border-2 border-dashed border-gray-300 bg-white p-10 text-center">
           <div className="text-4xl">📬</div>
           <h2 className="mt-4 text-lg font-semibold text-ink">
-            Willkommen bei FristPilot!
+            Willkommen bei Ordwell!
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
             Lade deinen ersten Brief, eine Rechnung oder ein Behördenschreiben hoch.
-            FristPilot erklärt es dir und sucht nach möglichen Fristen.
+            Ordwell erklärt es dir und sucht nach möglichen Fristen.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link href="/upload" className="btn-primary">
@@ -164,7 +164,7 @@ export default async function DashboardPage() {
         <div className="card">
           <p className="text-sm text-ink-soft">
             Aktuell keine offenen Fristen. 🎉 Lade ein Dokument hoch und speichere
-            erkannte Fristen als Erinnerung, damit FristPilot dich rechtzeitig
+            erkannte Fristen als Erinnerung, damit Ordwell dich rechtzeitig
             benachrichtigt.
           </p>
         </div>

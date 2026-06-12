@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Preise – FristPilot",
-  description: "FristPilot kostenlos testen. Keine Kreditkarte erforderlich.",
+  title: "Preise – Ordwell",
+  description: "Ordwell kostenlos testen. Keine Kreditkarte erforderlich.",
 };
 
 export default function PricingPage() {
@@ -11,7 +11,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <Link href="/" className="text-lg font-semibold text-navy">FristPilot</Link>
+          <Link href="/" className="text-lg font-semibold text-navy">Ordwell</Link>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm font-medium text-ink-soft hover:text-ink">Anmelden</Link>
             <Link href="/register" className="btn-primary text-sm">Kostenlos starten</Link>
@@ -27,7 +27,7 @@ export default function PricingPage() {
           Einfache, faire Preise
         </h1>
         <p className="mt-4 text-lg text-ink-soft">
-          In der Beta-Phase ist FristPilot vollständig kostenlos.
+          In der Beta-Phase ist Ordwell vollständig kostenlos.
           Du hilfst uns mit deinem Feedback, das Produkt besser zu machen.
         </p>
       </section>
@@ -110,7 +110,7 @@ export default function PricingPage() {
 
       <footer className="border-t border-gray-100 py-6">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 text-xs text-ink-soft">
-          <span>© 2025 FristPilot</span>
+          <span>© 2025 Ordwell</span>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">Datenschutz</Link>
             <Link href="/imprint" className="hover:underline">Impressum</Link>

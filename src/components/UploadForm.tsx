@@ -11,7 +11,7 @@ type UploadStep = "idle" | "uploading" | "analyzing" | "done";
 const STEP_LABELS: Record<UploadStep, string> = {
   idle: "",
   uploading: "Seiten werden hochgeladen…",
-  analyzing: "FristPilot analysiert das Dokument…",
+  analyzing: "Ordwell analysiert das Dokument…",
   done: "Analyse abgeschlossen!",
 };
 
@@ -205,7 +205,7 @@ export function UploadForm() {
               ? "1 PDF-Dokument (mehrseitig wird automatisch erkannt)"
               : files.length === 1
                 ? "1 Bild"
-                : `${files.length} Bilder · FristPilot erkennt automatisch, ob es ein mehrseitiges Dokument oder mehrere Briefe sind`}
+                : `${files.length} Bilder · Ordwell erkennt automatisch, ob es ein mehrseitiges Dokument oder mehrere Briefe sind`}
           </p>
           {files.map((f, i) => (
             <div

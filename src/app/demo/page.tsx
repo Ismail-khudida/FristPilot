@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Beispiel-Analyse – FristPilot",
+  title: "Beispiel-Analyse – Ordwell",
   description:
-    "So sieht eine FristPilot-Analyse aus – an einem Beispiel, ganz ohne eigenes Dokument.",
+    "So sieht eine Ordwell-Analyse aus – an einem Beispiel, ganz ohne eigenes Dokument.",
 };
 
 // Statische Beispiel-Analyse. Bewusst ohne Datenbank/Upload, damit zögernde
@@ -21,10 +21,10 @@ export default function DemoPage() {
             Beispiel · kein echtes Dokument nötig
           </div>
           <h1 className="mt-3 text-2xl font-semibold text-ink">
-            So sieht eine FristPilot-Analyse aus
+            So sieht eine Ordwell-Analyse aus
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Das Beispiel zeigt, was FristPilot aus einem typischen Brief macht –
+            Das Beispiel zeigt, was Ordwell aus einem typischen Brief macht –
             damit du weißt, was dich erwartet, bevor du etwas hochlädst.
           </p>
         </div>
@@ -142,7 +142,7 @@ export default function DemoPage() {
         {/* CTA */}
         <div className="rounded-xl border border-navy/20 bg-navy/5 p-6 text-center">
           <p className="font-semibold text-ink">
-            Genau das macht FristPilot mit deinen eigenen Briefen.
+            Genau das macht Ordwell mit deinen eigenen Briefen.
           </p>
           <p className="mt-1 text-sm text-ink-soft">
             Das Originaldokument wird nach der Analyse automatisch gelöscht.

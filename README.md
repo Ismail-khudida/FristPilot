@@ -1,6 +1,6 @@
-# FristPilot
+# Ordwell
 
-FristPilot ist eine Web-App, die deutschsprachigen Nutzern hilft, wichtige
+Ordwell ist eine Web-App, die deutschsprachigen Nutzern hilft, wichtige
 Fristen aus Dokumenten zu erkennen. Ein Dokument (PDF, JPG oder PNG) wird
 hochgeladen, von einer KI ausgewertet und in einfacher Sprache erklärt –
 inklusive erkannter Fristen, empfohlener nächster Schritte und speicherbarer
@@ -25,7 +25,7 @@ Schritt – ein separates OCR-Tool ist nicht nötig.
 ### 1. Abhängigkeiten installieren
 
 ```bash
-cd fristpilot
+cd ordwell
 npm install
 ```
 
@@ -159,7 +159,7 @@ Die App ist unter `http://localhost:3000` erreichbar.
 ## Projektstruktur
 
 ```
-fristpilot/
+ordwell/
 ├── supabase/schema.sql        # Datenbank-Schema, RLS, Storage-Bucket
 ├── middleware.ts              # Session-Refresh + Routenschutz
 └── src/

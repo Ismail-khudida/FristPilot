@@ -17,7 +17,7 @@ export function AnalysisFeedback({ documentId }: { documentId: string }) {
   if (sent) {
     return (
       <p className="text-center text-sm text-ink-soft">
-        Danke für dein Feedback! Das hilft uns, FristPilot zu verbessern.
+        Danke für dein Feedback! Das hilft uns, Ordwell zu verbessern.
       </p>
     );
   }

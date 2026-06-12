@@ -1,3 +1,7 @@
+# Worker-Service-Name: technischer Identifier, bewusst NICHT umbenannt.
+# Eine Umbenennung würde einen neuen Worker anlegen und die bestehenden
+# Custom-Domains, Secrets und Cron-Trigger abreißen. Das Branding (Ordwell)
+# ist davon unabhängig und wird über die UI/Domains abgebildet.
 name = "fristpilot"
 main = ".open-next/worker.js"
 compatibility_date = "2026-06-01"
@@ -12,11 +16,11 @@ DAILY_GLOBAL_ANALYSIS_LIMIT = "200"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 # Erlaubte Origins (CSRF). Kommagetrennt – alle verbundenen Domains. Die App
 # funktioniert dadurch gleichzeitig auf workers.dev und den neuen Domains.
-APP_ORIGIN = "https://fristpilot.app,https://fristpilot.com,https://www.fristpilot.com,https://www.fristpilot.app,https://fristpilot.ismailkhudida.workers.dev"
+APP_ORIGIN = "https://ordwell.de,https://www.ordwell.de,https://fristpilot.app,https://fristpilot.com,https://www.fristpilot.com,https://www.fristpilot.app,https://fristpilot.ismailkhudida.workers.dev"
 # Kanonische Hauptdomain für Links in Erinnerungs-E-Mails (Server, ohne Request-Kontext).
-NEXT_PUBLIC_APP_URL = "https://fristpilot.app"
-# Absender der Erinnerungs-Mails. Erst auf eine fristpilot.com-Adresse umstellen,
+NEXT_PUBLIC_APP_URL = "https://ordwell.de"
+# Absender der Erinnerungs-Mails. Erst auf eine ordwell.de-Adresse umstellen,
 # wenn die Domain in Resend verifiziert ist (siehe SETUP_DOMAINS.md).
-REMINDER_FROM_EMAIL = "FristPilot <onboarding@resend.dev>"
+REMINDER_FROM_EMAIL = "Ordwell <onboarding@resend.dev>"
 NEXT_PUBLIC_SUPABASE_URL = "https://wudgeccenmwthkurqddp.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZGdlY2Nlbm13dGhrdXJxZGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTg5NTMsImV4cCI6MjA5NjQ5NDk1M30.BovQ040PAwFo89RCoxEe4sW1iNi49pwyjEG1WDNziWg"

@@ -32,7 +32,7 @@ function safeRedirect(value: FormDataEntryValue | null): string {
 
 // Absolute App-Origin für E-Mail-Redirect-Links. Bevorzugt die Domain, auf der
 // der Nutzer tatsächlich ist (damit Bestätigungs-/Reset-Links auf dieselbe
-// Domain zeigen – egal ob fristpilot.com, fristpilot.app oder workers.dev).
+// Domain zeigen – egal ob ordwell.de, fristpilot.app/.com oder workers.dev).
 // APP_ORIGIN (ggf. kommagetrennt) dient nur als Fallback.
 async function getOrigin(): Promise<string> {
   const h = await headers();
