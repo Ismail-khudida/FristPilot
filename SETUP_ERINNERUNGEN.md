@@ -34,16 +34,16 @@ Absender-Adresse ggf. auf deine verifizierte Domain anpassen.
 **Option A – Externer Cron (am einfachsten):**
 Bei z. B. https://cron-job.org täglich 07:00 Uhr aufrufen:
 ```
-POST https://fristpilot.ismailkhudida.workers.dev/api/cron/reminders
+POST https://ordwell.de/api/cron/reminders
 Header: Authorization: Bearer <CRON_SECRET>
 ```
 
 **Option B – Supabase pg_cron + pg_net:**
 ```sql
 select cron.schedule(
-  'fristpilot-reminders', '0 7 * * *',
+  'ordwell-reminders', '0 7 * * *',
   $$ select net.http_post(
-       url := 'https://fristpilot.ismailkhudida.workers.dev/api/cron/reminders',
+       url := 'https://ordwell.de/api/cron/reminders',
        headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>')
      ); $$
 );
@@ -51,7 +51,7 @@ select cron.schedule(
 
 ### Testen
 ```
-curl -X POST https://fristpilot.ismailkhudida.workers.dev/api/cron/reminders \
+curl -X POST https://ordwell.de/api/cron/reminders \
   -H "Authorization: Bearer <CRON_SECRET>"
 ```
 Antwort z. B. `{"sent":1,"reminders":2}`.

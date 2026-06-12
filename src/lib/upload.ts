@@ -48,7 +48,7 @@ export function detectFileType(buffer: Buffer): DetectedFileType | null {
 }
 
 // Prüft, ob die Anfrage von einer eigenen App-Domain stammt (CSRF-Schutz).
-// Mehrere Domains werden unterstützt (ordwell.de + workers.dev + fristpilot.app/.com):
+// Mehrere Domains werden unterstützt (ordwell.de + www + workers.dev):
 //   - APP_ORIGIN darf eine kommagetrennte Liste erlaubter Origins sein,
 //   - zusätzlich gilt die Domain, an die die Anfrage tatsächlich ging
 //     (x-forwarded-host/host), als erlaubt – so funktioniert die App auf jeder

@@ -26,7 +26,10 @@ export function AuthForm({ mode, redirectTo, notice }: AuthFormProps) {
       <div className="mb-8 text-center">
         <div className="mb-2 text-2xl font-semibold text-navy">Ordwell</div>
         <p className="text-sm font-medium text-ink">
-          Dein KI-Assistent für Fristen und wichtige Dokumente.
+          Alles Wichtige an einem Ort: Dokumente, Verträge, Versicherungen,
+          Rechnungen, Garantiebelege und persönliche Verpflichtungen –
+          übersichtlich organisiert. Ordwell warnt dich rechtzeitig vor
+          unerwünschten Vertragsverlängerungen.
         </p>
         <p className="mt-1 text-sm text-ink-soft">
           {isLogin

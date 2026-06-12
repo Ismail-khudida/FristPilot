@@ -1,8 +1,4 @@
-# Worker-Service-Name: technischer Identifier, bewusst NICHT umbenannt.
-# Eine Umbenennung würde einen neuen Worker anlegen und die bestehenden
-# Custom-Domains, Secrets und Cron-Trigger abreißen. Das Branding (Ordwell)
-# ist davon unabhängig und wird über die UI/Domains abgebildet.
-name = "fristpilot"
+name = "ordwell"
 main = ".open-next/worker.js"
 compatibility_date = "2026-06-01"
 compatibility_flags = ["nodejs_compat"]
@@ -16,7 +12,7 @@ DAILY_GLOBAL_ANALYSIS_LIMIT = "200"
 ANTHROPIC_MODEL = "claude-sonnet-4-6"
 # Erlaubte Origins (CSRF). Kommagetrennt – alle verbundenen Domains. Die App
 # funktioniert dadurch gleichzeitig auf workers.dev und den neuen Domains.
-APP_ORIGIN = "https://ordwell.de,https://www.ordwell.de,https://fristpilot.app,https://fristpilot.com,https://www.fristpilot.com,https://www.fristpilot.app,https://fristpilot.ismailkhudida.workers.dev"
+APP_ORIGIN = "https://ordwell.de,https://www.ordwell.de,https://ordwell.ismailkhudida.workers.dev"
 # Kanonische Hauptdomain für Links in Erinnerungs-E-Mails (Server, ohne Request-Kontext).
 NEXT_PUBLIC_APP_URL = "https://ordwell.de"
 # Absender der Erinnerungs-Mails. Erst auf eine ordwell.de-Adresse umstellen,
