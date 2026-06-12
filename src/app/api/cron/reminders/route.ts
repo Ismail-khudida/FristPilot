@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Versendet fällige Erinnerungen per E-Mail – mit eskalierenden Stufen.
 // Dieser Endpunkt ist KEIN Nutzer-Endpunkt: er wird von einem Scheduler
@@ -82,6 +82,27 @@ function urgencyLabel(daysLeft: number): string {
 function parseStages(value: unknown): number[] {
   if (!Array.isArray(value)) return [];
   return value.filter((n): n is number => typeof n === "number");
+}
+
+// Heartbeat: jeden Lauf festhalten, damit ein separater Health-Check einen
+// stillen Ausfall des Cron-Jobs erkennen kann. Fehler hier dürfen den Versand
+// niemals abbrechen – nur protokollieren (z. B. falls die Tabelle noch fehlt).
+async function recordRun(
+  admin: SupabaseClient,
+  fields: { dueFound: number; usersSent: number; remindersSent: number; ok: boolean },
+): Promise<void> {
+  try {
+    const { error } = await admin.from("cron_runs").insert({
+      job: "reminders",
+      due_found: fields.dueFound,
+      users_sent: fields.usersSent,
+      reminders_sent: fields.remindersSent,
+      ok: fields.ok,
+    });
+    if (error) console.error("cron_runs konnte nicht geschrieben werden:", error);
+  } catch (e) {
+    console.error("cron_runs Insert-Ausnahme:", e);
+  }
 }
 
 function buildEmail(items: PendingNotification[], appUrl: string): string {
@@ -192,8 +213,11 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error("Fällige Erinnerungen konnten nicht geladen werden:", error);
+    await recordRun(admin, { dueFound: 0, usersSent: 0, remindersSent: 0, ok: false });
     return NextResponse.json({ error: "DB-Fehler" }, { status: 500 });
   }
+
+  const dueFound = (data ?? []).length;
 
   // Pro Erinnerung prüfen, ob eine neue Eskalationsstufe erreicht wurde.
   const pendingByUser = new Map<string, PendingNotification[]>();
@@ -213,6 +237,7 @@ export async function POST(request: Request) {
   }
 
   if (pendingByUser.size === 0) {
+    await recordRun(admin, { dueFound, usersSent: 0, remindersSent: 0, ok: true });
     return NextResponse.json({ sent: 0, reminders: 0 });
   }
 
@@ -261,5 +286,6 @@ export async function POST(request: Request) {
     }
   }
 
+  await recordRun(admin, { dueFound, usersSent, remindersSent, ok: true });
   return NextResponse.json({ sent: usersSent, reminders: remindersSent });
 }

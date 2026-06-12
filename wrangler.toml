@@ -22,5 +22,10 @@ NEXT_PUBLIC_APP_URL = "https://ordwell.de"
 # Absender der Erinnerungs-Mails. Erst auf eine ordwell.de-Adresse umstellen,
 # wenn die Domain in Resend verifiziert ist (siehe SETUP_DOMAINS.md).
 REMINDER_FROM_EMAIL = "Ordwell <onboarding@resend.dev>"
+# Empfänger der Cron-Ausfall-Alarme (Dead-Man-Switch /api/cron/health).
+ALERT_EMAIL = "ismail.khudida@recmo.de"
+# Max. Alter des letzten Erinnerungs-Laufs in Stunden, bevor alarmiert wird
+# (täglicher Cron + Puffer).
+CRON_MAX_AGE_HOURS = "26"
 NEXT_PUBLIC_SUPABASE_URL = "https://wudgeccenmwthkurqddp.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZGdlY2Nlbm13dGhrdXJxZGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTg5NTMsImV4cCI6MjA5NjQ5NDk1M30.BovQ040PAwFo89RCoxEe4sW1iNi49pwyjEG1WDNziWg"

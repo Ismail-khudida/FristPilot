@@ -35,6 +35,7 @@ export function UploadForm() {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [keepOriginal, setKeepOriginal] = useState(false);
+  const [autoReminders, setAutoReminders] = useState(true);
 
   const busy = step === "uploading" || step === "analyzing";
 
@@ -95,6 +96,7 @@ export function UploadForm() {
       // Reihenfolge der Seiten bleibt erhalten: in dieser Reihenfolge angehängt.
       for (const f of files) body.append("file", f);
       body.append("keep_original", keepOriginal ? "true" : "false");
+      body.append("auto_reminders", autoReminders ? "true" : "false");
 
       setProgress(40);
       const res = await fetch("/api/upload", { method: "POST", body });
@@ -270,6 +272,25 @@ export function UploadForm() {
             Standard: Die Originale werden nach der Analyse automatisch gelöscht,
             nur das Ergebnis bleibt. Aktiviere dies, wenn du die Seiten später
             wieder ansehen möchtest.
+          </span>
+        </span>
+      </label>
+
+      {/* Auto-Erinnerung: erkannte Fristen direkt als Erinnerung sichern */}
+      <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+        <input
+          type="checkbox"
+          checked={autoReminders}
+          disabled={busy}
+          onChange={(e) => setAutoReminders(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#1e293b]"
+        />
+        <span className="text-sm">
+          <span className="font-medium text-ink">Erkannte Fristen automatisch als Erinnerung speichern</span>
+          <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">
+            Für klar erkennbare Fristen mit Datum legt Ordwell direkt eine
+            Erinnerung an, damit du nichts verpasst. Du kannst sie jederzeit
+            unter „Erinnerungen“ ändern oder löschen.
           </span>
         </span>
       </label>

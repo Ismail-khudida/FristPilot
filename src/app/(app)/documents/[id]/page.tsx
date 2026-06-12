@@ -76,6 +76,19 @@ export default async function DocumentPage({
   const doc = data as DocumentRow;
   const analysis = doc.analysis_json;
 
+  // Bereits vorhandene Erinnerungen dieses Dokuments (für Auto-Erinnerung):
+  // Fristen, zu denen schon eine Erinnerung existiert, zeigen einen Status
+  // statt des Buttons – so entstehen keine Doppel-Einträge.
+  const { data: reminderRows } = await supabase
+    .from("reminders")
+    .select("due_date")
+    .eq("document_id", doc.id);
+  const remindedDates = new Set(
+    (reminderRows ?? [])
+      .map((r) => (r as { due_date: string | null }).due_date)
+      .filter((d): d is string => Boolean(d)),
+  );
+
   // Falls die Originalseiten (Opt-in) behalten wurden: kurzlebige Anzeige-Links
   // für ALLE Seiten holen, in Reihenfolge. Backward-compatible: ältere
   // Dokumente haben nur file_url (eine Seite) und kein file_urls.
@@ -334,16 +347,25 @@ export default async function DocumentPage({
                       </p>
                     )}
 
-                    <CreateReminderButton
-                      documentId={doc.id}
-                      defaultTitle={
-                        deadline.required_action ||
-                        deadline.description ||
-                        `Mögliche Frist: ${doc.file_name}`
-                      }
-                      defaultDescription={deadline.description}
-                      defaultDueDate={deadline.date}
-                    />
+                    {deadline.date && remindedDates.has(deadline.date) ? (
+                      <p className="flex items-center gap-1.5 text-sm font-medium text-green-700">
+                        ✓ Als Erinnerung gespeichert
+                        <span className="text-xs font-normal text-ink-soft">
+                          (unter „Erinnerungen“ änderbar)
+                        </span>
+                      </p>
+                    ) : (
+                      <CreateReminderButton
+                        documentId={doc.id}
+                        defaultTitle={
+                          deadline.required_action ||
+                          deadline.description ||
+                          `Mögliche Frist: ${doc.file_name}`
+                        }
+                        defaultDescription={deadline.description}
+                        defaultDueDate={deadline.date}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

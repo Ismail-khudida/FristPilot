@@ -17,6 +17,11 @@ const MAX_TOTAL_BYTES = 25 * 1024 * 1024; // 25 MB gesamt
 const MAX_PAGES = 12;
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "documents";
 
+// Ab dieser Confidence wird eine datierte Frist automatisch (Opt-in) als
+// Erinnerung angelegt. Bewusst vorsichtig: nur klar erkannte Fristen, damit
+// keine zweifelhaften Erinnerungen entstehen.
+const AUTO_REMINDER_MIN_CONFIDENCE = 0.7;
+
 interface PreparedPage {
   buffer: Buffer;
   detected: DetectedFileType;
@@ -58,6 +63,8 @@ export async function POST(request: Request) {
   }
 
   const keepOriginal = formData.get("keep_original") === "true";
+  // Auto-Erinnerung ist standardmäßig an; der Nutzer kann sie pro Upload abwählen.
+  const autoReminders = formData.get("auto_reminders") !== "false";
 
   // Alle Dateien lesen und ihren echten Typ über die Magic Bytes bestimmen.
   const pages: PreparedPage[] = [];
@@ -132,6 +139,7 @@ export async function POST(request: Request) {
   // Pro erkanntem Dokument eine Zeile anlegen (und – bei Opt-in – seine Seiten
   // speichern). Reihenfolge der Seiten bleibt durch pageIndices erhalten.
   const createdIds: string[] = [];
+  let reminderCount = 0;
   for (const doc of analyzed) {
     const groupPages = doc.pageIndices
       .map((i) => pages[i - 1])
@@ -208,6 +216,34 @@ export async function POST(request: Request) {
       continue;
     }
     createdIds.push(documentId);
+
+    // Auto-Erinnerung: nur datierte Fristen mit ausreichender Confidence.
+    // Die vorsichtige Sprache bleibt erhalten ("Mögliche Frist …").
+    if (autoReminders) {
+      const reminderRows = doc.analysis.deadlines
+        .filter((d) => d.date && d.confidence >= AUTO_REMINDER_MIN_CONFIDENCE)
+        .map((d) => ({
+          user_id: user.id,
+          document_id: documentId,
+          title:
+            d.required_action?.trim() ||
+            d.description?.trim() ||
+            `Mögliche Frist: ${displayName}`,
+          description: d.description?.trim() || null,
+          due_date: d.date,
+          status: "open",
+        }));
+      if (reminderRows.length > 0) {
+        const { error: remErr } = await supabase
+          .from("reminders")
+          .insert(reminderRows);
+        if (remErr) {
+          console.error("Auto-Erinnerungen konnten nicht angelegt werden:", remErr);
+        } else {
+          reminderCount += reminderRows.length;
+        }
+      }
+    }
   }
 
   if (createdIds.length === 0) {
@@ -222,5 +258,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     documentId: createdIds[0],
     documentCount: createdIds.length,
+    reminderCount,
   });
 }
