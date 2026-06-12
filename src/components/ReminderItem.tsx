@@ -47,6 +47,14 @@ export function ReminderItem({ reminder }: { reminder: ReminderRow }) {
               {dueLabel(reminder.due_date)}
             </span>
           )}
+          {!done && reminder.due_date && (
+            <a
+              href={`/api/reminders/${reminder.id}/ics`}
+              className="text-navy underline"
+            >
+              📅 Zum Kalender
+            </a>
+          )}
           {reminder.document_id && (
             <Link
               href={`/documents/${reminder.document_id}`}

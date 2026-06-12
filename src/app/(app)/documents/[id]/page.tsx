@@ -21,10 +21,10 @@ import type { DocumentRow } from "@/lib/types";
 function ConfidenceLabel({ value }: { value: number | null | undefined }) {
   const pct = Math.round((value ?? 0) * 100);
   if (pct >= 80)
-    return <span className="text-xs font-medium text-green-700">Erkennung: sicher</span>;
+    return <span className="text-xs font-medium text-green-700">✓ Wir sind uns ziemlich sicher</span>;
   if (pct >= 50)
-    return <span className="text-xs font-medium text-amber-700">Erkennung: unsicher</span>;
-  return <span className="text-xs font-medium text-red-700">Bitte prüfen</span>;
+    return <span className="text-xs font-medium text-amber-700">Eher unsicher – bitte prüfen</span>;
+  return <span className="text-xs font-medium text-red-700">Unsicher – bitte selbst prüfen</span>;
 }
 
 function DeadlineUrgency({ date }: { date: string | null }) {
